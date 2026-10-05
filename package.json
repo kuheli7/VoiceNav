@@ -1,0 +1,18 @@
+{
+  "name": "voicenav",
+  "private": true,
+  "version": "0.3.0",
+  "scripts": {
+    "test": "node --test tests/parser.test.js tests/hindi.test.js tests/help-undo.test.js tests/forms.test.js tests/forms-commands.test.js tests/browse-commands.test.js tests/user-bugs.test.js tests/sites.test.js",
+    "test:e2e": "node tests/e2e.mjs",
+    "test:browser": "node tests/e2e.mjs && node tests/e2e-forms.mjs && node tests/e2e-chat.mjs && node tests/e2e-browse.mjs && node tests/e2e-trusted.mjs",
+    "test:whisper": "node tests/e2e-whisper.mjs",
+    "test:backend": "cd backend && .venv\\Scripts\\python -m pytest -q",
+    "live:india": "node tests/live-india.mjs",
+    "live:docs": "node tests/live-docs.mjs",
+    "docs:login": "node tests/live-docs.mjs login"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.48.0"
+  }
+}

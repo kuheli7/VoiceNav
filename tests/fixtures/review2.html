@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Review regressions (test page)</title>
+<style>body{font:15px system-ui;margin:20px} #dlg{border:2px solid #333;padding:12px;margin:10px 0;width:300px}</style></head>
+<body>
+<nav><a href="#inbox" id="inbox">Inbox</a> <a href="#docs" id="docs">Docs</a> <a href="chainb.html" target="_blank" id="report">Report page</a></nav>
+<!-- a chat that takes 1.7 s to clear its box after Send: a second click would send twice -->
+<div id="slow" contenteditable="true" role="textbox" aria-label="Message" style="border:1px solid #888;min-height:24px;margin:10px 0"></div>
+<button id="send" aria-label="Send message">Send</button>
+<div id="dlg" role="dialog" aria-label="Notice">A message for you <button id="close" aria-label="Close">Close</button></div>
+<form id="f"><label><input type="checkbox" id="terms"> I agree to the terms</label> <label><input type="checkbox" id="keep" checked> Keep me signed in</label></form>
+<button id="clearall">Clear all</button>
+<a href="#images" id="images">Images</a>
+<input type="search" id="q" aria-label="Search">
+<script>
+  window.__sent = []; window.__clicks = [];
+  const box = document.getElementById("slow");
+  document.getElementById("send").addEventListener("click", () => { window.__sent.push(box.innerText.trim()); setTimeout(() => { box.textContent = ""; }, 1700); });
+  document.getElementById("close").addEventListener("click", () => { document.getElementById("dlg").remove(); window.__clicks.push("close"); });
+  document.getElementById("clearall").addEventListener("click", () => window.__clicks.push("clearall"));
+  for (const id of ["inbox", "docs", "images"]) document.getElementById(id).addEventListener("click", (e) => { e.preventDefault(); window.__clicks.push(id); });
+</script>
+</body></html>

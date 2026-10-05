@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Test Results</title>
+<style>
+  body{font:16px system-ui;margin:0;padding:16px 16px 16px 200px}
+  nav{position:absolute;left:16px;top:70px;width:170px}
+  nav a{display:block;margin:6px 0}
+  .result{border:1px solid #ccc;padding:20px;margin:12px 0;height:260px}
+  .result a.title{font-size:18px}
+  .q{border:1px solid #bbb;padding:10px;margin:4px 0;cursor:pointer}
+  .answer{display:none;padding:6px}
+  .q[aria-expanded=true] + .answer{display:block}
+  /* Amazon-style Sort: a painted look-alike (hidden from assistive tech) sits over the real native <select> */
+  .sortbox{position:relative;width:170px;height:26px;margin-bottom:8px}
+  .sortbox select{position:absolute;inset:0;width:100%;height:100%;opacity:0}
+  .sortbox .fake{position:absolute;inset:0;background:#eee;border:1px solid #999;padding:3px 6px;pointer-events:auto}
+</style>
+</head>
+<body>
+  <nav id="refinements" aria-label="Filters">
+    <strong>Filters</strong>
+    <a href="#f1" onclick="document.getElementById('filter').textContent='4 stars';return false">4 Stars &amp; Up</a>
+    <a href="#f2" onclick="document.getElementById('filter').textContent='free delivery';return false">Free Delivery</a>
+    <a href="#f3" onclick="document.getElementById('filter').textContent='under 500';return false">Under 500</a>
+    <label><input type="checkbox" id="gift"> Gift wrap</label>
+    <!-- the same product listed again as a sponsored link, with a different address (as on Amazon) -->
+    <a href="#sponsored" onclick="pick('Product 7 (sponsored)');return false">Product 7 - Wireless Headphones model G7</a>
+  </nav>
+
+  <p>Selected: <span id="selected">none</span> | Cart: <span id="cart">0</span> | Filter: <span id="filter">none</span> | Sorted: <span id="sorted">none</span></p>
+
+  <div class="sortbox">
+    <select id="sort" aria-label="Sort by" onchange="document.getElementById('sorted').textContent=this.value">
+      <option value="featured">Featured</option>
+      <option value="price-asc">Price: Low to High</option>
+      <option value="price-desc">Price: High to Low</option>
+      <option value="newest">Newest Arrivals</option>
+    </select>
+    <span class="fake" aria-hidden="true" tabindex="-1">Sort by: Featured</span>
+  </div>
+
+  <h2>People also ask</h2>
+  <div id="paa">
+    <div class="q" role="button" tabindex="0" aria-expanded="false" onclick="toggle(this)"><span>How long does it take to learn Python?</span></div><div class="answer">About three months.</div>
+    <div class="q" role="button" tabindex="0" aria-expanded="false" onclick="toggle(this)"><span>Can I learn Python in 3 months?</span></div><div class="answer">Yes, with practice.</div>
+    <div class="q" role="button" tabindex="0" aria-expanded="false" onclick="toggle(this)"><span>What is the best way to learn Python?</span></div><div class="answer">Build projects.</div>
+    <div class="q" role="button" tabindex="0" aria-expanded="false" onclick="toggle(this)"><span>Is Python hard for beginners?</span></div><div class="answer">Not really.</div>
+  </div>
+
+  <h2>Results</h2>
+  <div class="result"><a class="title" href="#r1" onclick="pick('Product 1');return false">Product 1 - Wireless Headphones model A1</a> <span class="price">Rs 1,100</span> <button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+  <div class="result"><a class="title" href="#r2" onclick="pick('Product 2');return false">Product 2 - Wireless Headphones model B2</a> <span class="price">Rs 700</span> <button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+  <div class="result"><a class="title" href="#r3" onclick="pick('Product 3');return false">Product 3 - Wireless Headphones model C3</a> <span class="price">Rs 2,500</span> <button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+  <div class="result"><a class="title" href="#r4" onclick="pick('Product 4');return false">Product 4 - Wireless Headphones model D4</a> <span class="price">Rs 450</span> <button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+  <div class="result"><a class="title" href="#r5" onclick="pick('Product 5');return false">Product 5 - Wireless Headphones model E5</a> <span class="price">Rs 3,900</span> <button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+  <div class="result"><a class="title" href="#r6" onclick="pick('Product 6');return false">Product 6 - Wireless Headphones model F6</a> <span class="price">Rs 1,800</span> <button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+  <div class="result"><a class="title" href="#r7" onclick="pick('Product 7');return false">Product 7 - Wireless Headphones model G7</a> <span class="price">Rs 990</span> <button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+  <div class="result"><a class="title" href="#r8" onclick="pick('Product 8');return false">Product 8 - Wireless Headphones model H8</a> <span class="price">Rs 1,250</span> <button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+
+<script>
+  const cart = document.getElementById('cart');
+  function pick(name){ document.getElementById('selected').textContent = name; }
+  function toggle(q){ q.setAttribute('aria-expanded', q.getAttribute('aria-expanded') === 'true' ? 'false' : 'true'); }
+</script>
+</body>
+</html>

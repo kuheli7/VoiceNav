@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Form that sends data</title></head>
+<body style="font:16px system-ui;padding:16px">
+  <p>Log: <span id="log">nothing</span></p>
+  <!-- a POST form: pressing Continue sends something, and nothing here can take it back -->
+  <form method="post" action="/never-used" onsubmit="event.preventDefault(); document.getElementById('log').textContent = 'sent';">
+    <input type="text" aria-label="Your name" value="Asha">
+    <button type="submit">Continue</button>
+  </form>
+  <!-- a switch the page itself flips back a moment after it is turned on -->
+  <label><input type="checkbox" id="flip" onchange="setTimeout(() => { this.checked = false; }, 500)"> Flip back</label>
+  <!-- a plain switch -->
+  <label><input type="checkbox" id="plain"> Plain switch</label>
+</body>
+</html>

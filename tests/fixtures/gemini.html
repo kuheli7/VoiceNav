@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gemini-style chat (mock)</title>
+<!--
+  Imitates the mechanics of gemini.google.com's composer (not its look):
+  - a Quill editor (rich-textarea .ql-editor) that notices changes with a MutationObserver, not input events;
+  - while empty there is only a "Microphone" button; the send button (aria-label "Send message") is hidden and
+    aria-disabled until ~300 ms after text appears;
+  - synthetic Enter is ignored.
+-->
+<style>
+  body{margin:0;font:15px system-ui}
+  #messages{min-height:300px;padding:16px}
+  .msg{background:#e8f0fe;border-radius:10px;padding:8px 12px;margin:6px 0;max-width:60%}
+  .input-area{display:flex;align-items:center;border:1px solid #ccc;border-radius:24px;margin:16px;padding:10px 14px;gap:8px}
+  rich-textarea{display:block;flex:1}
+  .ql-editor{min-height:24px;outline:none}
+  .ql-editor p{margin:0}
+  .ql-editor.ql-blank::before{content:attr(data-placeholder);color:#999;position:absolute}
+  .send-button{display:none}
+  .send-button.visible{display:inline-block}
+</style>
+</head>
+<body>
+  <div id="messages" aria-live="polite"></div>
+  <div class="input-area">
+    <button aria-label="Upload file menu">+</button>
+    <rich-textarea class="text-input-field_textarea">
+      <div class="ql-editor ql-blank textarea new-input-ui" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Enter a prompt here" data-placeholder="Ask Gemini"><p><br></p></div>
+    </rich-textarea>
+    <div class="trailing-actions-wrapper">
+      <button aria-label="Microphone" class="speech_dictation_mic_button" id="mic">mic</button>
+      <button aria-label="Send message" class="send-button" aria-disabled="true" id="send">send</button>
+    </div>
+  </div>
+  <p>Microphone pressed: <span id="mic-pressed">no</span></p>
+<script>
+  const ed = document.querySelector(".ql-editor"), send = document.getElementById("send");
+  const messages = document.getElementById("messages");
+  window.__log = []; window.__sent = []; window.__sentAt = null;
+  document.getElementById("mic").addEventListener("click", () => { document.getElementById("mic-pressed").textContent = "yes"; });
+  let state = "", timer;
+  new MutationObserver(() => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      state = ed.innerText.trim();
+      ed.classList.toggle("ql-blank", !state);
+      send.classList.toggle("visible", !!state);
+      send.setAttribute("aria-disabled", state ? "false" : "true");
+    }, 300);
+  }).observe(ed, { childList: true, subtree: true, characterData: true });
+  ed.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    if (!e.isTrusted) { window.__log.push("untrusted Enter ignored"); return; }
+    e.preventDefault(); doSend("enter");
+  });
+  send.addEventListener("click", () => { if (send.getAttribute("aria-disabled") !== "true") doSend("button"); });
+  function doSend(how) {
+    if (!state) return;
+    const p = document.createElement("div"); p.className = "msg"; p.textContent = state; messages.append(p);
+    window.__sent.push({ text: state, how }); window.__sentAt = performance.now();
+    ed.innerHTML = "<p><br></p>";
+    state = ""; ed.classList.add("ql-blank"); send.classList.remove("visible"); send.setAttribute("aria-disabled", "true");
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Video page (test)</title>
+<style>body{font:15px system-ui;margin:20px} video{width:480px;display:block}</style></head>
+<body>
+<h1>A video</h1>
+<video id="v" controls loop></video>
+<p><button id="likebtn" aria-pressed="false">Like this video along with 12 other people</button>
+<button aria-label="Dislike this video" id="dislikebtn" aria-pressed="false">Dislike</button></p>
+<script>
+  // a 60 second silent WAV made right here, so playback, speed and seeking work without any media file
+  const rate = 8000, secs = 60, n = rate * secs, buf = new ArrayBuffer(44 + n), dv = new DataView(buf);
+  const w = (o, s) => [...s].forEach((c, i) => dv.setUint8(o + i, c.charCodeAt(0)));
+  w(0, "RIFF"); dv.setUint32(4, 36 + n, true); w(8, "WAVEfmt "); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, rate, true); dv.setUint32(28, rate, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true); w(36, "data"); dv.setUint32(40, n, true);
+  new Uint8Array(buf, 44).fill(128);
+  document.getElementById("v").src = URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+  for (const id of ["likebtn", "dislikebtn"]) document.getElementById(id).addEventListener("click", (e) => e.target.setAttribute("aria-pressed", e.target.getAttribute("aria-pressed") !== "true"));
+</script>
+</body></html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chat without a send button (mock)</title>
+<!--
+  A message box with NO send button, to test what "send" does when there is nothing to click.
+  ?enter=any     the page sends on any Enter key, even a synthetic one -> VoiceNav should report it was sent
+  ?enter=trusted the page ignores synthetic Enter -> VoiceNav must say it couldn't send, not pretend
+  Also an order form whose button is "Submit order": "submit" must ask for a spoken yes first.
+-->
+<style>body{font:15px system-ui;margin:16px} textarea{width:400px;height:60px}</style>
+</head>
+<body>
+  <div id="log"></div>
+  <textarea aria-label="Write a message" id="msg"></textarea>
+  <hr>
+  <form id="order" onsubmit="event.preventDefault();document.getElementById('ordered').textContent='yes'">
+    <label>Delivery note <input type="text" id="note"></label>
+    <button type="submit">Submit order</button>
+  </form>
+  <p>Ordered: <span id="ordered">no</span></p>
+<script>
+  const any = new URLSearchParams(location.search).get("enter") === "any";
+  const ta = document.getElementById("msg");
+  window.__sent = []; window.__sentAt = null;
+  ta.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    if (!e.isTrusted && !any) return;
+    e.preventDefault();
+    if (!ta.value.trim()) return;
+    window.__sent.push({ text: ta.value.trim(), how: "enter" }); window.__sentAt = performance.now();
+    document.getElementById("log").append(ta.value.trim()); ta.value = "";
+  });
+</script>
+</body>
+</html>

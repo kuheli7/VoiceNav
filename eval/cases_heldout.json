@@ -1,0 +1,37 @@
+{
+  "note": "Written after the prompt was finalised and never used for tuning. Reuses the page definitions in cases.json.",
+  "cases": [
+    {"page": "shop_results", "command": "take the Sony one", "expect": {"action": "click", "id": 5}},
+    {"page": "shop_results", "command": "show only highly rated ones", "expect": {"action": "click", "id": 9}},
+    {"page": "shop_results", "command": "what is in my basket", "expect": {"action": "click", "id": 11}},
+    {"page": "shop_results", "command": "I want to sign in", "expect": {"action": "click", "id": 12}},
+    {"page": "shop_results", "command": "look up gaming mouse", "expect": {"action": "search", "text_contains": "gaming mouse"}},
+    {"page": "shop_results", "command": "see more results", "expect": {"action": "click", "id": 10}},
+    {"page": "shop_results", "command": "open the JBL ones", "expect": {"action": "click", "id": 6}},
+    {"page": "shop_results", "command": "book me a flight", "expect": {"action": "none"}},
+
+    {"page": "product", "command": "add this to my bag", "expect": {"action": "click", "id": 4}},
+    {"page": "product", "command": "I want to read the reviews", "expect": {"action": "click", "id": 7}},
+    {"page": "product", "command": "buy it", "expect": {"action": "click", "id": 5}},
+    {"page": "product", "command": "bookmark this", "expect": {"action": "click", "id": 6}},
+
+    {"page": "video", "command": "hit the like button", "expect": {"action": "click", "id": 3}},
+    {"page": "video", "command": "turn on subscription", "expect": {"action": "click", "id": 4}},
+    {"page": "video", "command": "go full screen", "expect": {"action": "click", "id": 11}},
+    {"page": "video", "command": "how do I change the quality", "expect": {"action": "click", "id": 10}},
+    {"page": "video", "command": "let's watch the sleep tips video", "expect": {"action": "click", "id": 9}},
+    {"page": "video", "command": "go to the homepage", "expect": {"action": "click", "id": 12}},
+    {"page": "video", "command": "play some jazz", "expect": {"action": "none"}},
+
+    {"page": "login", "command": "I don't remember my password", "expect": {"action": "click", "id": 5}},
+    {"page": "login", "command": "sign up", "expect": {"action": "click", "id": 6}},
+    {"page": "login", "command": "keep me signed in", "expect": {"action": "click", "id": 3}},
+    {"page": "login", "command": "type in my password", "expect": {"action": "click", "id": 2}},
+    {"page": "login", "command": "tell me a joke", "expect": {"action": "none"}},
+
+    {"page": "news", "command": "open the budget article", "expect": {"action": "click", "id": 6}},
+    {"page": "news", "command": "I want tech news", "expect": {"action": "click", "id": 4}},
+    {"page": "news", "command": "go to world news", "expect": {"action": "click", "id": 2}},
+    {"page": "news", "command": "open the penalty shootout article", "expect": {"action": "click", "id": 5}}
+  ]
+}

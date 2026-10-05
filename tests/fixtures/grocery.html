@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Test Grocery</title>
+<style>
+  body{font:16px system-ui;margin:0;padding:16px}
+  .card{border:1px solid #ccc;padding:12px;margin:12px 0;display:flex;gap:16px;align-items:center}
+</style>
+</head>
+<body>
+  <!-- Mirrors a real grocery listing: each product has a title link and an "Add to cart, <product>" button -->
+  <form role="search" action="/grocery.html" method="get">
+    <input type="search" name="q" aria-label="Search groceries">
+  </form>
+  <p>Cart: <span id="cart">0</span> | Opened: <span id="opened">none</span></p>
+
+  <div class="card">
+    <a href="#orange" onclick="opened.textContent='orange page';return false">Fresh Mini Orange 1 kg</a>
+    <span>Rs 120</span>
+    <button aria-label="Add to cart, Fresh Mini Orange 1 kg" onclick="cart.textContent=+cart.textContent+1">Add to cart</button>
+  </div>
+  <div class="card">
+    <a href="#bananas" onclick="opened.textContent='bananas page';return false">Organic Bananas 6 pcs</a>
+    <span>Rs 60</span>
+    <button aria-label="Add to cart, Organic Bananas 6 pcs" onclick="cart.textContent=+cart.textContent+1">Add to cart</button>
+  </div>
+<script>
+  const cart = document.getElementById('cart'), opened = document.getElementById('opened');
+</script>
+</body>
+</html>

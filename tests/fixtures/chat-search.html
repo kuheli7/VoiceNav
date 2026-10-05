@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Help centre with chat (mock)</title>
+<!--
+  A page with BOTH a search box (first in the page) and a chat box. "search for X" must use the search box;
+  "ask X", "send X" and "type X" (nothing focused) must use the chat box. The chat's Send button is disabled until the
+  textarea has text (a React-style controlled input that listens to input events).
+-->
+<style>
+  body{margin:0;font:15px system-ui}
+  header{padding:12px;border-bottom:1px solid #ddd}
+  .chat{position:fixed;right:16px;bottom:16px;width:320px;border:1px solid #ccc;border-radius:12px;padding:10px;background:#fff}
+  #chatlog{min-height:120px}
+  .chat textarea{width:100%;box-sizing:border-box;height:50px}
+</style>
+</head>
+<body>
+  <header>
+    <form role="search" action="chat-search.html" method="get">
+      <input type="search" name="q" placeholder="Search the help centre" aria-label="Search">
+      <button>Search</button>
+    </form>
+  </header>
+  <main><h1>Help centre</h1><p>Articles about orders, refunds and delivery.</p></main>
+  <div class="chat" role="region" aria-label="Chat with us">
+    <div id="chatlog" aria-live="polite"></div>
+    <textarea placeholder="Message the assistant" aria-label="Chat message"></textarea>
+    <button aria-label="Send" id="send" disabled>&#10148;</button>
+  </div>
+<script>
+  const ta = document.querySelector(".chat textarea"), send = document.getElementById("send");
+  window.__sent = []; window.__sentAt = null;
+  ta.addEventListener("input", () => { send.disabled = !ta.value.trim(); });
+  send.addEventListener("click", () => {
+    const d = document.createElement("div"); d.textContent = ta.value.trim(); document.getElementById("chatlog").append(d);
+    window.__sent.push({ text: ta.value.trim(), how: "button" }); window.__sentAt = performance.now();
+    ta.value = ""; send.disabled = true;
+  });
+</script>
+</body>
+</html>

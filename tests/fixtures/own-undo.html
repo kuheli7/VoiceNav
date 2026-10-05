@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Mail-like page with its own Undo</title></head>
+<body style="font:16px system-ui;padding:16px">
+  <!-- like Gmail: after "Archive" the site offers its own Undo, which knows best how to reverse it -->
+  <p>Log: <span id="log">nothing</span></p>
+  <button onclick="document.getElementById('log').textContent='archived'">Archive</button>
+  <button onclick="document.getElementById('log').textContent='restored by the page'">Undo</button>
+</body>
+</html>

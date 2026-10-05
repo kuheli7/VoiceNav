@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Sign up (form test page)</title>
+<style>
+  body { font: 16px system-ui; max-width: 640px; margin: 20px auto; }
+  label { display: block; margin-top: 12px; }
+  input, select, textarea { font: inherit; padding: 6px; width: 320px; }
+  input[type=checkbox], input[type=radio] { width: auto; }
+  .spacer { height: 900px; }
+  /* a spam-trap field: real input, parked off-screen, a person never sees it */
+  .trap { position: absolute; left: -9999px; }
+  [role=checkbox] { display: inline-block; width: 18px; height: 18px; border: 2px solid #000; vertical-align: middle; }
+  [role=checkbox][aria-checked=true] { background: #1d4ed8; }
+  #notes { border: 1px solid #888; min-height: 60px; width: 320px; padding: 6px; }
+  #log { margin-top: 20px; color: #060; }
+</style></head>
+<body>
+<h1>Create an account</h1>
+<form id="f" method="post" action="/never-sent" onsubmit="window.__submits = (window.__submits || 0) + 1; document.getElementById('log').textContent = 'SUBMITTED'; return false;">
+  <label for="fn">First name</label><input id="fn" name="first_name" autocomplete="given-name">
+  <label for="ln">Last name *</label><input id="ln" name="last_name" required>
+  <label for="em">Email</label><input id="em" type="email" name="email">
+  <label for="em2">Confirm email</label><input id="em2" type="email" name="email2">
+  <label for="ph">Phone number</label><input id="ph" type="tel" name="phone">
+  <label for="dob">Date of birth</label><input id="dob" type="date" name="dob">
+  <label for="pw">Password</label><input id="pw" type="password" name="pw">
+  <label for="qty">Quantity</label><input id="qty" type="number" name="qty" placeholder="Quantity">
+  <label for="zip">Postal code</label><input id="zip" name="zip">
+  <label for="otp">OTP</label><input id="otp" name="otp" maxlength="4">
+  <label for="country">Country</label>
+  <select id="country" name="country"><option value="">Choose...</option><option value="IN">India</option><option value="US">United States</option><option value="GB">United Kingdom</option></select>
+  <fieldset><legend>Gender</legend>
+    <label><input type="radio" name="gender" id="g-m" value="m"> Male</label>
+    <label><input type="radio" name="gender" id="g-f" value="f"> Female</label>
+    <label><input type="radio" name="gender" id="g-o" value="o"> Other</label>
+  </fieldset>
+  <label for="comments">Comments</label><textarea id="comments" name="comments" rows="3"></textarea>
+  <label id="notes-l">Notes</label><div id="notes" role="textbox" aria-labelledby="notes-l" aria-multiline="true" contenteditable="true"></div>
+  <div class="trap"><label for="site">Website</label><input id="site" name="website" tabindex="-1" autocomplete="off"></div>
+  <div style="opacity:0"><label for="trap2">Company website</label><input id="trap2" name="company_site"></div>
+  <input id="trap3" aria-label="Fax" style="position:absolute;top:-9999px">
+  <label for="sex">Sex</label><select id="sex" name="sex"><option value="">--</option><option value="m">Male</option><option value="f">Female</option></select>
+  <div class="spacer"></div>
+  <label><input type="checkbox" id="news" name="news"> Subscribe to newsletter</label>
+  <label><input type="checkbox" id="terms" name="terms"> I agree to the Terms and Conditions</label>
+  <label><span role="checkbox" id="remember" aria-checked="false" aria-labelledby="rem-l" tabindex="0"></span> <span id="rem-l">Remember me</span></label>
+  <p><button type="submit" id="go">Create account</button></p>
+</form>
+<div id="log"></div>
+<script>
+  const r = document.getElementById("remember");
+  r.addEventListener("click", () => r.setAttribute("aria-checked", r.getAttribute("aria-checked") === "true" ? "false" : "true"));
+</script>
+</body></html>

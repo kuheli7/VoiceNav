@@ -1,0 +1,12 @@
+node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+eval/raw-*.json
+
+tests/.profile-docs/
+
+*.log
+Screenshots_Test/
+.env
+*.env

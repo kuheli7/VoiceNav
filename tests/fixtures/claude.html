@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claude-style chat (mock)</title>
+<!--
+  Imitates the mechanics of claude.ai's composer (not its look):
+  - a ProseMirror-style contenteditable whose internal state only changes on the browser's own input events,
+    and only ~600 ms later (the real editor and React re-render take a moment);
+  - a "Send message" button that stays disabled until that state has text;
+  - an Enter handler that ignores synthetic (untrusted) key events, as real editors effectively do.
+  A sidebar search box is present too, so "type"/"send" must pick the composer, not the search field.
+-->
+<style>
+  body{margin:0;font:15px system-ui;display:flex;height:100vh}
+  nav{width:240px;border-right:1px solid #ddd;padding:12px;box-sizing:border-box}
+  nav input{width:100%;box-sizing:border-box;padding:6px}
+  main{flex:1;display:flex;flex-direction:column}
+  #messages{flex:1;overflow:auto;padding:16px}
+  .msg{background:#f3f0e8;border-radius:10px;padding:8px 12px;margin:6px 0;max-width:60%}
+  .composer{border:1px solid #ccc;margin:16px;border-radius:16px;padding:12px}
+  .ProseMirror{min-height:24px;outline:none}
+  .ProseMirror p{margin:0}
+  .ProseMirror.is-empty p::before{content:attr(data-placeholder);color:#999}
+  .row{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+  .row button{min-width:32px;height:32px}
+</style>
+</head>
+<body>
+  <nav>
+    <input type="search" aria-label="Search your chats" placeholder="Search your chats">
+    <p><a href="#new">New chat</a></p>
+    <p><a href="#recents">Recents</a></p>
+  </nav>
+  <main>
+    <div id="messages" aria-live="polite"></div>
+    <fieldset class="composer">
+      <div aria-label="Write your prompt to Claude">
+        <div contenteditable="true" role="textbox" translate="no" class="ProseMirror is-empty" aria-multiline="true" tabindex="0"><p data-placeholder="How can I help you today?"><br></p></div>
+      </div>
+      <div class="row">
+        <button type="button" aria-label="Add files and more">+</button>
+        <button type="button" aria-label="Model selector">Sonnet</button>
+        <button type="button" aria-label="Send message" id="send" disabled>&#8593;</button>
+      </div>
+    </fieldset>
+  </main>
+<script>
+  const ed = document.querySelector(".ProseMirror"), send = document.getElementById("send");
+  const messages = document.getElementById("messages");
+  window.__log = []; window.__sent = []; window.__sentAt = null;
+  let state = "", timer;
+  // The editor's own state: rebuilt from the DOM only after a real input event, and only 600 ms later
+  ed.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      state = ed.innerText.trim();
+      send.disabled = !state;
+      ed.classList.toggle("is-empty", !state);
+    }, 600);
+  });
+  ed.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    if (!e.isTrusted) { window.__log.push("untrusted Enter ignored"); return; }
+    e.preventDefault(); doSend("enter");
+  });
+  function doSend(how) {
+    if (!state) { window.__log.push("send pressed with empty state"); return; }
+    const p = document.createElement("div");
+    p.className = "msg"; p.textContent = state;
+    messages.append(p);
+    window.__sent.push({ text: state, how }); window.__sentAt = performance.now();
+    ed.innerHTML = '<p data-placeholder="How can I help you today?"><br></p>';
+    state = ""; send.disabled = true; ed.classList.add("is-empty");
+  }
+  send.addEventListener("click", () => doSend("button"));
+</script>
+</body>
+</html>

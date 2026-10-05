@@ -1,0 +1,136 @@
+{
+  "pages": {
+    "shop_results": {
+      "title": "Headphones - Search Results",
+      "elements": [
+        [1, "textbox", "Search Amazon", null],
+        [2, "button", "Go", null],
+        [3, "dropdown", "Sort by: Featured", null],
+        [4, "link", "boAt Rockerz 450 Bluetooth Headphones", 1499],
+        [5, "link", "Sony WH-CH520 Wireless Headphones", 3990],
+        [6, "link", "JBL Tune 510BT On-Ear Headphones", 2999],
+        [7, "link", "Zebronics Noise Cancelling Headphones", 2199],
+        [8, "checkbox", "Free delivery", null],
+        [9, "checkbox", "4 stars & up", null],
+        [10, "button", "Next page", null],
+        [11, "link", "Cart", null],
+        [12, "link", "Sign in", null]
+      ]
+    },
+    "product": {
+      "title": "boAt Rockerz 450 Bluetooth Headphones",
+      "elements": [
+        [1, "textbox", "Search Amazon", null],
+        [2, "link", "Back to results", null],
+        [3, "dropdown", "Quantity", null],
+        [4, "button", "Add to Cart", null],
+        [5, "button", "Buy Now", null],
+        [6, "button", "Add to Wishlist", null],
+        [7, "link", "See all customer reviews", null],
+        [8, "link", "Sold by CloudTail India", null],
+        [9, "button", "Share", null],
+        [10, "link", "Cart", null]
+      ]
+    },
+    "video": {
+      "title": "Intro to Machine Learning - Video",
+      "elements": [
+        [1, "textbox", "Search", null],
+        [2, "button", "Play", null],
+        [3, "button", "Like this video", null],
+        [4, "button", "Subscribe", null],
+        [5, "button", "Share", null],
+        [6, "link", "Comments", null],
+        [7, "link", "Next: Learn Python in One Hour", null],
+        [8, "link", "How Neural Networks Work Explained Simply", null],
+        [9, "link", "10 Tips for Better Sleep Tonight", null],
+        [10, "button", "Settings", null],
+        [11, "button", "Full screen", null],
+        [12, "link", "Home", null]
+      ]
+    },
+    "login": {
+      "title": "Sign in to your account",
+      "elements": [
+        [1, "textbox", "Email address", null],
+        [2, "textbox", "Password", null],
+        [3, "checkbox", "Remember me", null],
+        [4, "button", "Sign in", null],
+        [5, "link", "Forgot your password?", null],
+        [6, "link", "Create a new account", null],
+        [7, "button", "Sign in with Google", null]
+      ]
+    },
+    "news": {
+      "title": "Daily Herald - Front Page",
+      "elements": [
+        [1, "link", "Home", null],
+        [2, "link", "World", null],
+        [3, "link", "Sports", null],
+        [4, "link", "Technology", null],
+        [5, "link", "Local team wins the regional final after dramatic penalty shootout", null],
+        [6, "link", "City council approves new budget for road repairs this year", null],
+        [7, "link", "Scientists discover new species of deep sea fish near the trench", null],
+        [8, "button", "Subscribe", null],
+        [9, "button", "Search", null],
+        [10, "link", "Sign in", null]
+      ]
+    }
+  },
+  "cases": [
+    {"page": "shop_results", "command": "open the cheapest headphones", "expect": {"action": "click", "id": 4}},
+    {"page": "shop_results", "command": "click the most expensive one", "expect": {"action": "click", "id": 5}},
+    {"page": "shop_results", "command": "open the second result", "expect": {"action": "click", "id": 5}},
+    {"page": "shop_results", "command": "open the third one", "expect": {"action": "click", "id": 6}},
+    {"page": "shop_results", "command": "select the last one", "expect": {"action": "click", "id": 7}},
+    {"page": "shop_results", "command": "pick the cheapest", "expect": {"action": "click", "id": 4}},
+    {"page": "shop_results", "command": "sort the results", "expect": {"action": "click", "id": 3}},
+    {"page": "shop_results", "command": "show me only the ones with free delivery", "expect": {"action": "click", "id": 8}},
+    {"page": "shop_results", "command": "go to the next page", "expect": {"action": "click", "id": 10}},
+    {"page": "shop_results", "command": "look for wireless earbuds", "expect": {"action": "search", "text_contains": "earbuds"}},
+    {"page": "shop_results", "command": "check my cart", "expect": {"action": "click", "id": 11}},
+    {"page": "shop_results", "command": "log me in", "expect": {"action": "click", "id": 12}},
+    {"page": "shop_results", "command": "make me a sandwich", "expect": {"action": "none"}},
+    {"page": "shop_results", "command": "take me to the previous page", "expect": {"action": "back"}},
+
+    {"page": "product", "command": "put it in my basket", "expect": {"action": "click", "id": 4}},
+    {"page": "product", "command": "I want to buy this now", "expect": {"action": "click", "id": 5}},
+    {"page": "product", "command": "save it for later", "expect": {"action": "click", "id": 6}},
+    {"page": "product", "command": "show me what other people think", "expect": {"action": "click", "id": 7}},
+    {"page": "product", "command": "go back to the results", "expect": {"any": [{"action": "click", "id": 2}, {"action": "back"}]}},
+    {"page": "product", "command": "who is selling this", "expect": {"action": "click", "id": 8}},
+    {"page": "product", "command": "change the quantity", "expect": {"action": "click", "id": 3}},
+    {"page": "product", "command": "send this to a friend", "expect": {"action": "click", "id": 9}},
+    {"page": "product", "command": "open the cheapest one", "expect": {"action": "none"}},
+
+    {"page": "video", "command": "start the video", "expect": {"any": [{"action": "click", "id": 2}, {"action": "play"}]}},
+    {"page": "video", "command": "like this video", "expect": {"action": "click", "id": 3}},
+    {"page": "video", "command": "subscribe to the channel", "expect": {"action": "click", "id": 4}},
+    {"page": "video", "command": "play the next video", "expect": {"action": "click", "id": 7}},
+    {"page": "video", "command": "make it full screen", "expect": {"action": "click", "id": 11}},
+    {"page": "video", "command": "open the comments", "expect": {"action": "click", "id": 6}},
+    {"page": "video", "command": "open the second video", "expect": {"action": "click", "id": 8}},
+    {"page": "video", "command": "turn off the lights", "expect": {"action": "none"}},
+
+    {"page": "login", "command": "enter my email", "expect": {"action": "click", "id": 1}},
+    {"page": "login", "command": "click on password", "expect": {"action": "click", "id": 2}},
+    {"page": "login", "command": "I forgot my password", "expect": {"action": "click", "id": 5}},
+    {"page": "login", "command": "make a new account", "expect": {"action": "click", "id": 6}},
+    {"page": "login", "command": "continue with google", "expect": {"action": "click", "id": 7}},
+    {"page": "login", "command": "tick remember me", "expect": {"action": "click", "id": 3}},
+    {"page": "login", "command": "log in", "expect": {"action": "click", "id": 4}},
+    {"page": "login", "command": "what is the weather today", "expect": {"action": "none"}},
+
+    {"page": "news", "command": "open the story about the fish", "expect": {"action": "click", "id": 7}},
+    {"page": "news", "command": "read about the road repairs", "expect": {"action": "click", "id": 6}},
+    {"page": "news", "command": "show me sports", "expect": {"action": "click", "id": 3}},
+    {"page": "news", "command": "open the football story", "expect": {"action": "click", "id": 5}},
+    {"page": "news", "command": "go to the technology section", "expect": {"action": "click", "id": 4}},
+    {"page": "news", "command": "search for elections", "expect": {"action": "search", "text_contains": "elections"}},
+    {"page": "news", "command": "subscribe", "expect": {"action": "click", "id": 8}},
+    {"page": "news", "command": "open the first story", "expect": {"action": "click", "id": 5}},
+    {"page": "news", "command": "move down the page a little", "expect": {"action": "scroll", "direction": "down"}},
+    {"page": "news", "command": "scroll back up", "expect": {"action": "scroll", "direction": "up"}},
+    {"page": "news", "command": "click the blue unicorn", "expect": {"action": "none"}}
+  ]
+}

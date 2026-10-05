@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8"><title>Trusted click test</title>
+<style>body{font:16px system-ui;padding:40px} button{font-size:18px;margin:12px;padding:10px 18px}</style>
+<h1>Trusted click test</h1>
+<!-- a button that ignores scripted clicks, like many custom widgets and every popup opener -->
+<button id="picky">Picky menu</button>
+<button id="popup" aria-haspopup="menu">Popup menu</button>
+<button id="plain">Plain menu</button>
+<!-- a risky label that ignores scripted clicks: it must ask first and never be re-pressed by the fallback -->
+<button id="risky">Buy now</button>
+<pre id="keys"></pre>
+<pre id="out">picky=0 popup=0 plain=0 risky=0</pre>
+<script>
+  const n = { picky: 0, popup: 0, plain: 0, risky: 0 };
+  const show = () => document.getElementById("out").textContent = `picky=${n.picky} popup=${n.popup} plain=${n.plain} risky=${n.risky}`;
+  document.getElementById("picky").addEventListener("click", (e) => { if (e.isTrusted) { n.picky++; show(); } });
+  document.getElementById("popup").addEventListener("click", (e) => { if (e.isTrusted) { n.popup++; show(); } });
+  document.getElementById("plain").addEventListener("click", () => { n.plain++; show(); });
+  document.getElementById("risky").addEventListener("click", (e) => { if (e.isTrusted) { n.risky++; show(); } });
+  addEventListener('keydown', (e) => { document.getElementById('keys').textContent += `${e.isTrusted ? 'T' : 'u'}:${e.ctrlKey ? 'C' : ''}${e.shiftKey ? 'S' : ''}${e.key} `; });
+</script>

@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "VoiceNav",
+  "version": "0.2.0",
+  "description": "Hands-free web browsing: scroll, click, type, search and control media by voice, with optional local AI for flexible commands.",
+  "permissions": ["storage", "tabs", "sessions", "debugger"],
+  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "background": { "service_worker": "background.js" },
+  "host_permissions": ["http://127.0.0.1:8000/*"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["parser.js", "detector.js", "forms.js", "sites.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

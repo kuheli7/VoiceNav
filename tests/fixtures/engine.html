@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Search engine results (mock)</title>
+<!--
+  Copies the result markup of Bing (#b_results > li.b_algo h2 a) and DuckDuckGo (article[data-testid=result]
+  a[data-testid=result-title-a]), including the sitelinks under the first result that made "the second result" pick
+  the wrong link before those sites had adapters. Load with ?vn-host=bing.com or ?vn-host=duckduckgo.com.
+-->
+<style>
+  body{font:15px system-ui;margin:16px;max-width:700px}
+  li.b_algo,article{list-style:none;border-bottom:1px solid #eee;padding:10px 0}
+  .sitelinks a{display:inline-block;margin-right:12px;font-size:13px}
+  h2{font-size:18px;margin:4px 0}
+</style>
+</head>
+<body>
+  <p>Opened: <span id="opened">none</span></p>
+  <form role="search"><input type="search" name="q" value="how to learn python" aria-label="Search"></form>
+  <div id="bing" hidden>
+    <ol id="b_results">
+      <li class="b_algo"><cite>https://www.python.org › about</cite><h2><a href="#python-org">Python For Beginners | Python.org</a></h2>
+        <p>Python is easy to learn, with a long, detailed description of the language for new programmers.</p>
+        <div class="sitelinks"><a href="#python-downloads">Downloads for every platform</a><a href="#python-docs">Documentation and tutorials</a><a href="#python-more">More results from python.org</a></div></li>
+      <li class="b_algo"><cite>https://www.w3schools.com › python</cite><h2><a href="#w3schools">Python Tutorial - W3Schools</a></h2><p>Well organized tutorials.</p></li>
+      <li class="b_algo"><cite>https://www.learnpython.org</cite><h2><a href="#learnpython">Learn Python - Free Interactive Python Tutorial</a></h2><p>Interactive.</p></li>
+    </ol>
+  </div>
+  <div id="ddg" hidden>
+    <section>
+      <article data-testid="result"><a href="#python-org">python.org</a><h2><a data-testid="result-title-a" href="#python-org">Python For Beginners | Python.org</a></h2>
+        <p>Python is easy to learn, with a long, detailed description of the language for new programmers.</p>
+        <div class="sitelinks"><a href="#python-site">More results from www.python.org for this search</a><a href="#python-docs">Documentation and tutorials</a></div></article>
+      <article data-testid="result"><a href="#w3schools">w3schools.com</a><h2><a data-testid="result-title-a" href="#w3schools">Python Tutorial - W3Schools</a></h2><p>Well organized tutorials.</p></article>
+      <article data-testid="result"><a href="#learnpython">learnpython.org</a><h2><a data-testid="result-title-a" href="#learnpython">Learn Python - Free Interactive Python Tutorial</a></h2><p>Interactive.</p></article>
+    </section>
+  </div>
+<script>
+  const host = new URLSearchParams(location.search).get("vn-host") || "";
+  document.getElementById(host.includes("bing") ? "bing" : "ddg").hidden = false;
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("a[href^='#']");
+    if (a) { e.preventDefault(); document.getElementById("opened").textContent = a.getAttribute("href").slice(1); }
+  });
+</script>
+</body>
+</html>

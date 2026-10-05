@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ChatGPT-style chat (mock)</title>
+<!--
+  Imitates the mechanics of chatgpt.com's composer (not its look):
+  - #prompt-textarea is a ProseMirror contenteditable inside a <form>; a hidden real <textarea> sits next to it;
+  - while the box is empty there is no send button, only "Start voice mode" and "Dictate" buttons (must NOT be pressed);
+  - data-testid="send-button" appears ~150 ms after text exists (React re-render);
+  - synthetic Enter is ignored.
+  window.__sent records HOW a message was sent (button / form / enter) so a test can insist on the button.
+-->
+<style>
+  body{margin:0;font:15px system-ui}
+  #messages{min-height:300px;padding:16px}
+  .msg{background:#eee;border-radius:10px;padding:8px 12px;margin:6px 0;max-width:60%}
+  form{border:1px solid #ccc;border-radius:24px;margin:16px;padding:10px 14px;display:flex;align-items:center;gap:8px}
+  #prompt-textarea{flex:1;min-height:24px;outline:none}
+  #prompt-textarea p{margin:0}
+  #prompt-textarea p.placeholder::before{content:attr(data-placeholder);color:#999}
+  form button{height:34px;min-width:34px;border-radius:17px}
+</style>
+</head>
+<body>
+  <header><a href="#login">Log in</a> <a href="#signup">Sign up for free</a></header>
+  <div id="messages" aria-live="polite"></div>
+  <form id="composer" class="w-full">
+    <button type="button" aria-label="Add photos and files">+</button>
+    <textarea name="prompt-textarea" style="display:none"></textarea>
+    <div contenteditable="true" translate="no" class="ProseMirror" id="prompt-textarea"><p data-placeholder="Ask anything" class="placeholder"><br></p></div>
+    <span id="trailing">
+      <button type="button" aria-label="Dictate button" id="dictate">mic</button>
+      <button type="button" data-testid="composer-speech-button" aria-label="Start voice mode" id="voice">voice</button>
+    </span>
+  </form>
+  <p>Voice mode started: <span id="voice-started">no</span></p>
+<script>
+  const ed = document.getElementById("prompt-textarea"), trailing = document.getElementById("trailing");
+  const messages = document.getElementById("messages");
+  window.__log = []; window.__sent = []; window.__sentAt = null;
+  for (const id of ["voice", "dictate"]) document.getElementById(id).addEventListener("click", () => { document.getElementById("voice-started").textContent = "yes (" + id + ")"; });
+  let state = "", timer;
+  function render() {
+    let btn = document.getElementById("composer-submit-button");
+    if (state && !btn) {
+      btn = document.createElement("button");
+      btn.id = "composer-submit-button"; btn.dataset.testid = "send-button"; btn.setAttribute("aria-label", "Send prompt");
+      btn.textContent = "↑";
+      btn.addEventListener("click", (e) => { e.preventDefault(); doSend("button"); });
+      trailing.append(btn);
+    } else if (!state && btn) btn.remove();
+    ed.querySelector("p")?.classList.toggle("placeholder", !state);
+  }
+  ed.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => { state = ed.innerText.trim(); render(); }, 150); });
+  ed.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    if (!e.isTrusted) { window.__log.push("untrusted Enter ignored"); return; }
+    e.preventDefault(); doSend("enter");
+  });
+  document.getElementById("composer").addEventListener("submit", (e) => { e.preventDefault(); doSend("form"); });
+  function doSend(how) {
+    if (!state) return;
+    const p = document.createElement("div"); p.className = "msg"; p.textContent = state; messages.append(p);
+    window.__sent.push({ text: state, how }); window.__sentAt = performance.now();
+    ed.innerHTML = '<p data-placeholder="Ask anything" class="placeholder"><br></p>';
+    state = ""; render();
+  }
+</script>
+</body>
+</html>

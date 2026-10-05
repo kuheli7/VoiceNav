@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Inbox (Gmail-style mock)</title>
+<style>
+  /* A MOCK of the parts of Gmail's inbox that gave trouble. Written from what I know of its structure, not copied from it:
+     rows are <tr role="row"> with NO link inside, each with a checkbox that is a div role=checkbox; opening is a click on the row;
+     an open message hides the list and shows a "Back to Inbox" button. */
+  body { font:14px system-ui; margin:0; }
+  #bar { padding:8px; border-bottom:1px solid #ccc; display:flex; gap:10px; align-items:center; }
+  table { width:100%; border-collapse:collapse; }
+  tr.zA { border-bottom:1px solid #eee; cursor:pointer; }
+  tr.zA td { padding:8px; }
+  tr.zA.sel { background:#d8e6ff; }
+  [role=checkbox] { display:inline-block; width:16px; height:16px; border:2px solid #555; vertical-align:middle; }
+  [role=checkbox][aria-checked=true] { background:#1d4ed8; }
+  #view { padding:20px; } #view[hidden], #list[hidden] { display:none; }
+</style></head>
+<body>
+<div id="bar">
+  <span role="checkbox" id="master" aria-checked="false" aria-label="Select" tabindex="0"></span>
+  <div role="button" id="back" aria-label="Back to Inbox" tabindex="0" hidden>&larr;</div>
+  <div role="button" id="refresh" aria-label="Refresh" tabindex="0">&#8635;</div>
+</div>
+<div id="list"><table><tbody id="rows"></tbody></table></div>
+<div id="view" hidden><h2 id="subject"></h2><p id="from"></p></div>
+<script>
+  window.__opened = [];
+  const mails = [["Priya Nair", "Project update for Friday", "Hi, the update is ready."], ["Rahul Verma", "Lunch tomorrow?", "Are you free?"], ["Amazon.in", "Your order has shipped", "Track your package."], ["HR Team", "Holiday calendar", "See the attached list."], ["Priya Nair", "Re: Project update for Friday", "Thanks!"], ["LinkedIn", "You appeared in 4 searches", "See who."]];
+  const rows = document.getElementById("rows");
+  mails.forEach(([from, subj, snip], i) => {
+    const tr = document.createElement("tr"); tr.className = "zA"; tr.setAttribute("role", "row"); tr.setAttribute("jsaction", "click:open"); tr.tabIndex = -1;
+    tr.innerHTML = `<td><span role="checkbox" aria-checked="false" class="cb"></span></td><td>${from}</td><td><span class="bog">${subj}</span> - ${snip}</td><td>10:0${i} AM</td>`;
+    rows.append(tr);
+    const cb = tr.querySelector(".cb");
+    cb.addEventListener("click", (e) => { e.stopPropagation(); const on = cb.getAttribute("aria-checked") !== "true"; cb.setAttribute("aria-checked", on); tr.classList.toggle("sel", on); });
+    tr.addEventListener("click", () => { window.__opened.push(subj); document.getElementById("list").hidden = true; document.getElementById("view").hidden = false; document.getElementById("back").hidden = false; document.getElementById("subject").textContent = subj; document.getElementById("from").textContent = from; });
+  });
+  document.getElementById("back").addEventListener("click", () => { document.getElementById("list").hidden = false; document.getElementById("view").hidden = true; document.getElementById("back").hidden = true; });
+  document.getElementById("master").addEventListener("click", () => { const m = document.getElementById("master"); const on = m.getAttribute("aria-checked") !== "true"; m.setAttribute("aria-checked", on); document.querySelectorAll(".cb").forEach((c) => { c.setAttribute("aria-checked", on); c.closest("tr").classList.toggle("sel", on); }); });
+</script>
+</body></html>

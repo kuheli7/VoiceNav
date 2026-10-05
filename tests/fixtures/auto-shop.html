@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unknown Shop</title>
+<style>
+  body{font:16px system-ui;margin:0;padding:16px}
+  .css-9fa3k{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:900px}
+  .css-1ab2c{border:1px solid #ccc;padding:12px;height:230px}
+  nav a{margin-right:12px} footer{margin-top:24px}
+  aside{position:absolute;right:16px;top:60px;width:230px;border:1px solid #bbb;padding:8px}
+</style>
+</head>
+<body>
+  <!-- No class or attribute here matches any hand-written rule: the extension has to work out the layout itself. -->
+  <nav><a href="#h">Home page</a><a href="#d">Today's deals</a><a href="#c">Customer service</a><a href="#s">Sell on this site</a></nav>
+  <p>Selected: <span id="selected">none</span> | Cart: <span id="cart">0</span></p>
+  <aside><strong>Trending now</strong>
+    <div><a href="#t1" onclick="pick('Trending 1');return false">Trending bestseller number one</a></div>
+    <div><a href="#t2" onclick="pick('Trending 2');return false">Trending bestseller number two</a></div>
+    <div><a href="#t3" onclick="pick('Trending 3');return false">Trending bestseller number three</a></div>
+  </aside>
+  <div class="css-9fa3k" id="grid">
+    <div class="css-1ab2c"><a class="css-zz91" href="#a" onclick="pick('Kettle');return false"><h3>Stainless Steel Electric Kettle 1.5 L</h3></a><span>Rs 1,299</span><br><button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+    <div class="css-1ab2c"><a class="css-zz91" href="#b" onclick="pick('Toaster');return false"><h3>Two Slice Pop-up Bread Toaster</h3></a><span>Rs 899</span><br><button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+    <div class="css-1ab2c"><a class="css-zz91" href="#c" onclick="pick('Blender');return false"><h3>Portable Smoothie Blender 400 W</h3></a><span>Rs 2,450</span><br><button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+    <div class="css-1ab2c"><a class="css-zz91" href="#d" onclick="pick('Iron');return false"><h3>Steam Iron With Ceramic Soleplate</h3></a><span>Rs 749</span><br><button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+    <div class="css-1ab2c"><a class="css-zz91" href="#e" onclick="pick('Fan');return false"><h3>Table Fan Three Speed 400 mm</h3></a><span>Rs 1,650</span><br><button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+    <div class="css-1ab2c"><a class="css-zz91" href="#f" onclick="pick('Heater');return false"><h3>Room Heater With Thermostat 2000 W</h3></a><span>Rs 3,100</span><br><button onclick="cart.textContent=+cart.textContent+1">Add to cart</button></div>
+  </div>
+  <footer><a href="#f1">Privacy and cookie policy</a> <a href="#f2">Terms and conditions of use</a> <a href="#f3">Help and returns centre</a></footer>
+<script>
+  const cart = document.getElementById('cart');
+  function pick(name){ document.getElementById('selected').textContent = name; }
+</script>
+</body>
+</html>
