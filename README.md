@@ -4,6 +4,10 @@ Hands-free web browsing for people who can't use a mouse or keyboard. A Chrome/E
 "scroll down", "click add to cart" or "open the cheapest one" and have the page do it, with a local AI model
 (no cloud, no API cost) for commands that aren't fixed phrases.
 
+**Project history:** development started on 2026-10-04 and was not tracked in git until 0.3.0 (2026-10-06), so the git log
+starts there. What changed before and since, with the bugs found, their causes and fixes, is in [`CHANGELOG.md`](CHANGELOG.md);
+dated test results are under [Results](#results) and [Tested on real sites](#tested-on-real-sites).
+
 ## How it works
 
 ```
