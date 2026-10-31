@@ -1,5 +1,11 @@
 (() => {
-  if (window.top !== window || window.__voicenav) return;
+  if (window.top !== window) return;
+  // This script can run more than once in a tab: the browser injects it on page load, and the extension injects it into tabs
+  // that were already open when it was installed or reloaded (so nobody has to refresh them). A live copy in this world
+  // means we're done; otherwise any leftover copy from before an extension reload is told to let go and we take over.
+  if (window.__voicenav && chrome.runtime?.id) return;
+  document.dispatchEvent(new CustomEvent("voicenav-takeover"));
+  document.getElementById("voicenav-host")?.remove();
   window.__voicenav = true;
 
   // ---------- config ----------
@@ -1888,8 +1894,8 @@
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text.slice(0, 900));
       u.lang = lang === "hi-IN" ? "hi-IN" : "en-IN";
-      const done = () => { speakingNow = false; if (listening) setTimeout(startRecognizer, 400); };
-      u.onstart = () => { speakingNow = true; stopRecognizer(); };
+      const done = () => { speakingNow = false; hostPause(false, 400); if (listening) setTimeout(startRecognizer, 400); };
+      u.onstart = () => { speakingNow = true; stopRecognizer(); hostPause(true); };
       u.onend = done; u.onerror = done;
       if (TEST_HOOK) host.dataset.spoke = text;
       speechSynthesis.speak(u);
@@ -1898,7 +1904,7 @@
   }
   function hush() {
     try { speechSynthesis.cancel(); } catch { /* none */ }
-    if (speakingNow) { speakingNow = false; if (listening) setTimeout(startRecognizer, 200); }
+    if (speakingNow) { speakingNow = false; hostPause(false, 200); if (listening) setTimeout(startRecognizer, 200); }
   }
 
   // What this page is, in a few sentences: its headings, whether it has results, a search box, a chat box, a form or a video,
@@ -2023,7 +2029,8 @@
       case "docsVoice": {
         if (location.hostname !== "docs.google.com") return say("Voice typing is a Google Docs feature. Open a document first");
         return pressKey({ key: "S", code: "KeyS", vk: 83, ctrl: true, shift: true }, "control shift s", () => {
-          setListening(false, { remember: false, quiet: true }); // two things can't both listen: pause VoiceNav while Google's voice typing runs
+          // two things can't both listen: pause VoiceNav while Google's voice typing runs (the shared microphone page only lets go when voice is off)
+          setListening(false, { remember: hosted === true, quiet: true });
           say("Google voice typing started. VoiceNav is paused: press Alt+V to bring it back");
         });
       }
@@ -2508,13 +2515,17 @@
   // `listening` is what the user asked for. `rec` is the browser's recognizer, which is stopped while the tab
   // is hidden (so background tabs never act on speech) and restarted when the tab is shown again.
   let rec = null, listening = false;
+  // Whether the extension's microphone page is doing the listening (see background.js), so this tab never asks for the
+  // microphone itself: Chrome would put an "Allow?" question on every new site. null until the worker has said, false where the
+  // browser can't host it, and then this tab listens as it always did.
+  let hosted = null;
 
   function startRecognizer() {
-    if (!listening || document.hidden || rec || speakingNow) return;
+    if (!listening || document.hidden || rec || speakingNow || hosted !== false) return;
     if (useWhisper) return startWhisper();
     rec = new SR();
     rec.lang = lang; rec.continuous = true; rec.interimResults = false; rec.maxAlternatives = 5;
-    if (TEST_HOOK) { host.dataset.recLang = rec.lang; host.dataset.recStarts = String(+(host.dataset.recStarts || 0) + 1); }
+    if (TEST_HOOK) { host.dataset.listensIn = "page"; host.dataset.recLang = rec.lang; host.dataset.recStarts = String(+(host.dataset.recStarts || 0) + 1); }
     rec.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (!e.results[i].isFinal) continue;
@@ -2541,9 +2552,45 @@
     listening = on;
     micBtn.classList.toggle("on", on);
     if (!on) { stopRecognizer(); setAsleep(false); micBtn.classList.remove("asleep"); }
-    if (remember) try { chrome.runtime.sendMessage({ type: "setVoice", on }); } catch {}
-    if (on) startRecognizer();
+    if (remember && !on) try { chrome.runtime.sendMessage({ type: "setVoice", on }); } catch {}
+    if (on && remember) {
+      // The worker's answer says who listens (the shared microphone page, or this tab), so wait for it rather than guess
+      const answered = (r) => { hosted = !!r?.host; startRecognizer(); };
+      try { chrome.runtime.sendMessage({ type: "setVoice", on }).then(answered, () => answered(null)); } catch { answered(null); }
+    } else if (on) startRecognizer();
     if (!quiet) say(on ? "Listening..." : "Voice off. Press Alt+V");
+  }
+
+  // What the microphone page heard, handed to this tab by the worker only while it is the one in front
+  function onHeard(alts, src) {
+    if (!listening || document.hidden || speakingNow || !alts.length) return;
+    if (src === "whisper") { if (TEST_HOOK) host.dataset.sttLast = alts[0]; return handle(alts[0]); }
+    handle(dictating ? alts[0] : VoiceNavParser.bestAlternative(alts));
+  }
+  let needGrant = false; // the pill is still asking for the one-time permission, so it must say when that worked
+  function onHostState(m) {
+    if (TEST_HOOK) {
+      host.dataset.listensIn = "host";
+      host.dataset.recLang = m.lang; host.dataset.recStarts = String(m.starts); host.dataset.hostState = m.state + (m.detail ? ":" + m.detail : "");
+      host.dataset.whisper = m.whisper && m.active ? "on" : "off";
+      host.dataset.hostAudio = m.audio || "";
+    }
+    if (!listening) return;
+    if (m.state === "needs-grant") { needGrant = true; say("VoiceNav needs the microphone once. I opened a tab where you can allow it"); }
+    else if (needGrant && (m.state === "ready" || m.state === "listening")) { needGrant = false; say("Listening..."); }
+    else if (m.detail === "network") say('Chrome\'s speech service can\'t be reached (offline, or Brave blocks it). Say "use offline speech" if the backend has Whisper');
+    else if (m.detail === "speech-blocked") say("Chrome blocked its speech service for VoiceNav. Say \"use offline speech\" if the backend has Whisper");
+    else if (m.detail === "no-microphone") say("No microphone was found. Plug one in, then press Alt+V twice");
+    else if (m.detail === "unsupported") say('Speech recognition isn\'t supported in this browser. Use the offline recogniser: it needs the backend');
+  }
+  // Speaking pauses the shared microphone too (the tab's own recognizer is paused by stopRecognizer). The pause lifts only if
+  // nothing else has started speaking in the meantime.
+  function hostPause(paused, delay = 0) {
+    if (hosted !== true) return;
+    setTimeout(() => {
+      if (paused !== speakingNow) return;
+      try { chrome.runtime.sendMessage({ type: "micPause", paused }).catch(() => {}); } catch { /* the extension was reloaded */ }
+    }, delay);
   }
 
   // The background worker holds the one "voice is on" setting for every tab. Follow it whenever this page loads or becomes
@@ -2551,23 +2598,48 @@
   async function syncVoice() {
     try {
       const s = await chrome.runtime.sendMessage({ type: "getVoice" });
-      if (!s || !!s.on === listening) return;
+      if (!s) return;
+      hosted = !!s.host;
+      if (!!s.on === listening) return startRecognizer(); // it may have been waiting to learn who listens
       setListening(!!s.on, { remember: false, quiet: true });
       say(s.on ? "Listening..." : "Voice off. Press Alt+V");
     } catch {}
   }
+  // The shared microphone listens only while some tab can be seen (a minimised or covered browser has nobody to act on speech)
+  const tellSeen = (visible) => {
+    if (document.prerendering) return; // a page the browser is preparing in the background is not the one being looked at
+    try { chrome.runtime.sendMessage({ type: "tabVisible", visible, at: Date.now() }).catch(() => {}); } catch { /* the extension was reloaded */ }
+  };
   document.addEventListener("visibilitychange", () => {
+    tellSeen(!document.hidden);
     if (document.hidden) stopRecognizer();
     else syncVoice().then(startRecognizer);
+  });
+  addEventListener("pageshow", () => tellSeen(!document.hidden)); // back from the back/forward cache
+  document.addEventListener("prerenderingchange", () => tellSeen(!document.hidden)); // a prepared page has just been shown
+  // Leaving a page mid-sentence cancels its speech without a word, which would leave the shared microphone paused
+  addEventListener("pagehide", () => {
+    tellSeen(false);
+    if (!speakingNow || hosted !== true) return;
+    try { chrome.runtime.sendMessage({ type: "micPause", paused: false }).catch(() => {}); } catch { /* the extension was reloaded */ }
   });
   try {
     chrome.runtime.onMessage.addListener((m) => {
       if (m?.type === "chainRun" && !document.hidden) { // the rest of a sentence, handed over by the tab that opened or switched to this one
         chrome.runtime.sendMessage({ type: "chainGet" }).then((r) => { if (r && r.parts && r.parts.length) runChain(r.parts); }).catch(() => {});
       }
-      if (m?.type === "voiceChanged" && !!m.on !== listening) { setListening(!!m.on, { remember: false, quiet: true }); say(m.on ? "Listening..." : "Voice off. Press Alt+V"); }
+      if (m?.type === "voiceChanged") {
+        if (m.host !== undefined) hosted = !!m.host;
+        if (!!m.on !== listening) { setListening(!!m.on, { remember: false, quiet: true }); say(m.on ? "Listening..." : "Voice off. Press Alt+V"); }
+      }
+      if (m?.type === "heard" && Array.isArray(m.alts)) onHeard(m.alts.map(String), m.src);
+      if (m?.type === "hostState") onHostState(m);
+      if (m?.type === "hostStatus" && listening && !document.hidden && !(m.hearing && dictating)) say(String(m.text || ""));
     });
   } catch {}
+  // A newer copy of this script (after the extension was reloaded) is taking over this tab: stop listening and get out of its way
+  document.addEventListener("voicenav-takeover", () => { listening = false; stopRecognizer(); stopAutoScroll(false); host.remove(); }, { once: true });
+  tellSeen(!document.hidden);
   syncVoice(); // every page load (reload, navigation, a new tab) picks up where the session left off
 
   micBtn.addEventListener("click", () => setListening(!listening));

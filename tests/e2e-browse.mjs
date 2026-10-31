@@ -299,6 +299,14 @@ try {
   await say("undo").catch(() => {}); // going back replaces the page
   await page.waitForTimeout(1200);
   check("'undo' goes back from the site it opened", /mail\.html/.test(page.url()), page.url());
+
+  // the same sentence with a plain "and", which is how people say it
+  await say("open example dot com and show numbers").catch(() => {});
+  await page.waitForURL(/example\.com/, { timeout: 20000 });
+  await waitForHost(page);
+  await page.waitForTimeout(4500);
+  const badges2 = await page.evaluate(() => document.querySelector("#voicenav-host")?.shadowRoot.querySelectorAll(".badge").length);
+  check("'open example.com and show numbers' (plain 'and'): the second step ran on the NEW page", badges2 >= 1, `badges=${badges2} url=${page.url()}`);
 } catch (e) {
   check("test run completed", false, e.stack || e.message);
 } finally {

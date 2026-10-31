@@ -684,20 +684,31 @@
 
   // "open the project and then chat" -> ["open the project", "chat"]. Only splits when what comes first is a real command that
   // does not take free text (a typed message may contain "then"), and keeps everything after a text command as one part.
+  // A plain "and" also splits ("open a new tab and search for hello"), but only when the first part is a whole command and the rest
+  // is one too (or starts with a command word, like "click the first result"), because "and" is also an ordinary word in what you
+  // ask for ("click salt and pepper", "open black and white").
   const NO_CHAIN = new Set(["type", "send", "search", "fill", "fillOrType", "typeEmail", "typeNumber", "typeDate", "dictate", "confirm"]);
   const CHAIN_SEP = /\s*,?\s*\b(?:and then|then|after that|afterwards)\b\s*,?\s*/i;
+  const LOOKS_LIKE_ONE = /^(?:click|open|press|select|tap|choose|pick|view|go|show|play|scroll|read)\b\s*\S/i; // starts like a command, whatever follows
+  const AND_SEP = /\s*,?\s*\band\b\s*,?\s*/gi;
   function splitChain(raw) {
     const out = [];
     let rest = String(raw || "").trim();
     for (let i = 0; i < 4; i++) {
       const hit = rest.match(CHAIN_SEP);
-      if (!hit) break;
-      const left = rest.slice(0, hit.index).trim(), right = rest.slice(hit.index + hit[0].length).trim();
+      let at = hit ? hit.index : -1, len = hit ? hit[0].length : 0;
+      for (const m of rest.matchAll(AND_SEP)) { // the first "and" that really joins two commands, if it comes before any "then"
+        if (hit && m.index >= hit.index) break;
+        const left = rest.slice(0, m.index).trim(), right = rest.slice(m.index + m[0].length).trim();
+        const lc = left && parseExact(left);
+        if (lc && !NO_CHAIN.has(lc.type) && right && (parseExact(right) || splitChain(right) || LOOKS_LIKE_ONE.test(right))) { at = m.index; len = m[0].length; break; }
+      }
+      if (at < 0) break;
+      const left = rest.slice(0, at).trim(), right = rest.slice(at + len).trim();
       if (!left || !right) break;
-      const c = parse(left);
+      const c = parseExact(left);
       // the first step must be a real command; later ones may be a command the AI will work out ("click the first result")
-      const looksLikeOne = /^(?:click|open|press|select|tap|choose|pick|view|go|show|play|scroll|read)\b/i.test(left);
-      if ((!c && (!out.length || !looksLikeOne)) || (c && NO_CHAIN.has(c.type))) break;
+      if ((!c && (!out.length || !LOOKS_LIKE_ONE.test(left))) || (c && NO_CHAIN.has(c.type))) break;
       out.push(left);
       rest = right;
     }
@@ -706,7 +717,7 @@
     return out;
   }
 
-  function parse(raw) {
+  function parseExact(raw) {
     const t = normalize(raw);
     let m;
     if (!t) return null;
@@ -871,7 +882,9 @@
     const PANEL = "(?:panel|pill|voicenav|voice panel|controls?|(?:voice |mic |microphone )?(?:icon|button|widget)|voice|mic|microphone)";
     const SPOT = "(top|bottom|left|right|up|down)(?: (left|right|top|bottom))?(?: corner| side)?";
     // "move the voice icon to the top right", "move it to the top left", "put the mic at the bottom"
-    const moveM = t.match(new RegExp(`^(?:please )?(?:move|put|dock|shift|place|send) (?:the |this |my )?${PANEL}(?: to| at| in| on)?(?: the)? ${SPOT}$`)) ||
+    // The verb is optional ("voice icon to the top left", "mic bottom right") and so is the whole object ("top left")
+    const moveM = t.match(new RegExp(`^(?:please )?(?:(?:move|put|dock|shift|place|send|take|bring|get|set|keep) )?(?:the |this |my )?${PANEL}(?: to| at| in| on)?(?: the)? ${SPOT}$`)) ||
+      t.match(/^(?:please )?(?:(?:move|put|go|shift|place) )?(?:to |at )?(?:the )?(top|bottom)[ -](left|right)(?: corner)?$/) ||
       t.match(new RegExp(`^(?:please )?(?:move|put|dock|shift|place|send) (?:it|this|that)(?: to| at| in| on)?(?: the)? ${SPOT}$`)) ||
       t.match(/^(?:please )?(?:move|put|dock|shift|place) (?:to|at) (?:the )?(top|bottom)[ -](left|right)(?: corner)?$/);
     if (moveM) {
@@ -886,7 +899,9 @@
     if (new RegExp(`^(?:hide|minimi[sz]e) (?:the )?${PANEL_OLD}$`).test(t)) return { type: "panel", show: false };
     if (new RegExp(`^(?:show|restore|bring back) (?:the )?${PANEL_OLD}$`).test(t)) return { type: "panel", show: true };
 
-    if ((m = t.match(/^scroll (down|up)(?: just)?(?: a (?:little )?bit| a little| a tad| a touch| a smidge| slightly| little| bit)$/))) return { type: "scroll", dir: m[1], amount: 0.3 };
+    const LITTLE = "(?:a (?:little )?bit|a little|a tad|a touch|a smidge|slightly|little|bit)";
+    if ((m = t.match(new RegExp(`^scroll (down|up)(?: just)? ${LITTLE}$`))) || (m = t.match(new RegExp(`^scroll (?:just )?${LITTLE} (down|up)$`)))) return { type: "scroll", dir: m[1], amount: 0.3 };
+    if ((m = t.match(/^scroll a lot (down|up)$/))) return { type: "scroll", dir: m[1], amount: 1.5 };
     if ((m = t.match(/^scroll (down|up) a lot$/))) return { type: "scroll", dir: m[1], amount: 1.5 };
     if ((m = t.match(/^(?:scroll|page|go) (down|up)$/))) return { type: "scroll", dir: m[1], amount: 0.8 };
     if (/^(?:scroll |go )?(?:to )?(?:the )?(?:top|beginning)(?: of (?:the )?page)?$/.test(t)) return { type: "scrollEdge", to: "top" };
@@ -984,13 +999,55 @@
     return null;
   }
 
+  // One misheard or misspelled letter should not make a command fail ("scrol dwn", "pase", "nxt tab"). When nothing matches,
+  // words close to a command word (one edit; two for long words) are corrected and the phrase is parsed again. Only
+  // commands that cannot do harm are accepted this way: never a click, search or typed text, which would act on guessed words.
+  const VOCAB = ["scroll", "down", "up", "little", "pause", "play", "mute", "unmute", "volume", "forward", "back", "reload", "refresh",
+    "previous", "next", "first", "second", "third", "last", "tab", "top", "bottom", "left", "right", "move", "voice", "icon", "panel",
+    "numbers", "show", "hide", "close", "undo", "stop", "listening", "slowly", "faster", "slower", "page", "corner", "slightly", "again",
+    "fullscreen", "bigger", "smaller", "restart", "resume", "continue", "tabs", "window", "beginning", "end", "help", "mic", "button"];
+  const FUZZY_OK = new Set(["scroll", "scrollEdge", "autoScroll", "stopScroll", "scrollSpeed", "nav", "tab", "media", "movePanel", "panel",
+    "numbers", "undo", "help", "close", "off", "snooze", "wakeUp", "hideCard"]);
+  function editDistance(a, b) { // Damerau-Levenshtein, small strings only
+    const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+    for (let j = 1; j <= b.length; j++) d[0][j] = j;
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+    return d[a.length][b.length];
+  }
+  function correctWord(w) {
+    if (w.length < 3 || VOCAB.includes(w) || /\d/.test(w)) return w;
+    const limit = w.length >= 7 ? 2 : 1;
+    let best = null, bestD = limit + 1, tie = false;
+    for (const v of VOCAB) {
+      if (v.length < (w.length >= 4 ? 3 : 4) || Math.abs(v.length - w.length) > limit) continue;
+      const dist = editDistance(w, v);
+      if (dist < bestD) { best = v; bestD = dist; tie = false; } else if (dist === bestD && v !== best) tie = true;
+    }
+    return best && !tie ? best : w;
+  }
+  function parse(raw) {
+    const exact = parseExact(raw);
+    if (exact || typeof raw !== "string") return exact;
+    const t = normalize(raw);
+    const words = t.split(" ");
+    if (!t || words.length > 9) return exact; // long sentences are conversation, not mistyped commands
+    const fixed = words.map(correctWord);
+    const changed = fixed.filter((w, i) => w !== words[i]).length;
+    if (!changed || changed > 2) return exact;
+    const cmd = parseExact(fixed.join(" "));
+    return cmd && FUZZY_OK.has(cmd.type) ? cmd : exact;
+  }
+
   // The recognizer returns several guesses for one utterance, best first ("paws" / "pause" / "pose"). The best guess is the
   // right one most of the time, but when it isn't a command and a lower one is, the command is almost certainly what was said.
   // If none parses, keep the top guess (it may be something for the AI or for typing).
   function bestAlternative(alts) {
     const list = (alts || []).map((a) => String(a || "").trim()).filter(Boolean);
     if (!list.length) return "";
-    const understood = (a) => { try { return parse(toEnglish(stripWake(a) ?? a)) !== null; } catch { return false; } };
+    const understood = (a) => { try { return parseExact(toEnglish(stripWake(a) ?? a)) !== null; } catch { return false; } };
     if (understood(list[0])) return list[0];
     return list.slice(1).find(understood) || list[0];
   }

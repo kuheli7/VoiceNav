@@ -71,6 +71,9 @@ try {
       check("scrolled to the top at the start", (await page.evaluate(() => scrollY)) === 0);
       // start listening: the fake microphone starts the recording the moment the stream opens
       await page.evaluate(() => document.querySelector("#voicenav-host").shadowRoot.getElementById("mic").click());
+      // the microphone page never gets a click, and a suspended AudioContext would hand Whisper silence: it must be running
+      const audio = await waitFor(() => host("hostAudio"), 10000, 250);
+      check("the audio context in the microphone page is running (no click needed)", audio === "running", `state: ${JSON.stringify(audio)}`);
       const heard = await waitFor(() => host("sttLast"), 45000, 500);
       check("Whisper heard the spoken phrase", !!heard && expectText.test(heard), `heard: ${JSON.stringify(heard)} | ${await status()}`);
       const moved = await waitFor(async () => (await page.evaluate(() => scrollY)) > 100, 10000, 300);

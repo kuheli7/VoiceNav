@@ -55,7 +55,25 @@ Design decisions worth knowing:
 
 1. **Load the extension:** `chrome://extensions` -> Developer mode -> Load unpacked -> choose the `extension` folder.
 2. **(Optional) start the AI backend:** `.\start-backend.ps1`. The pill's badge turns green ("AI on").
-3. Open any site, press **Alt+V**, allow the microphone, and speak.
+3. Open any site, press **Alt+V**, and speak. The first time, a VoiceNav tab asks for the microphone: choose **Allow** once. That covers
+   every site, so no website ever asks again (see [the microphone](#the-microphone)).
+
+### The microphone
+
+Chrome asks for the microphone once **per website**, which is no use to someone who can't click "Allow" on every new site. So the
+websites don't listen. A hidden extension page (`offscreen.html`) does, and the extension's own address is asked once, on
+`setup.html`, which opens by itself the first time you switch voice on. What it hears goes to the tab you are looking at (never to
+a tab behind it), and it stops listening while VoiceNav speaks so it can't obey its own voice. Switching voice off lets go of the
+microphone. If the browser has no offscreen pages, each tab listens for itself and asks per site, as before.
+
+- Choose **Allow** (or "Allow while visiting the site"). A one-time "Allow this time" answer may end when the setup tab closes; if
+  it does, VoiceNav opens the setup page again.
+- The microphone is open only while voice is on **and** a VoiceNav tab can be seen. Minimise Chrome (or cover it) and it is let go;
+  show Chrome again and it comes back. Switching tabs does not blink it off (the stop waits a second).
+- Not verified here: a real click on Chrome's Allow button persisting for the extension (the tests write the grant into the profile),
+  what "Allow this time" does once the setup tab closes, Chrome's speech service transcribing from the extension page (the test
+  microphone is fake), and a real minimised window (a Playwright browser never reports a tab as hidden, so the tests make the tabs'
+  "hidden" reports by hand). All of these need a real microphone and browser.
 
 ### Commands that work without the backend
 
@@ -125,7 +143,7 @@ Safety and honesty:
 | `open youtube` / `go to gmail` / `open amazon in a new tab` / `open example.com` | Opens another site by name (about 45 known ones, or any plain address). If this page has a link with that name (YouTube's own logo, an Amazon result) that is pressed instead. `undo` goes back, or closes the new tab |
 | `new tab` / `next tab` / `previous tab` / `switch to the second tab` / `switch to gmail` | Tabs. Voice follows you to the new tab. A browser page (chrome://, the Web Store) can't be listened in, so it is never switched to without saying so, and `new tab` opens Google |
 | `list tabs` / `close this tab` / `reopen closed tab` | See them on a card; close one; bring one back |
-| `open the project and then chat` | Several commands in one sentence (`and then`, `then`, `after that`). Waits for the page to settle between steps; if a step loads another page the rest carries on there. The second step prefers the button that **appeared** after the first. Stops, and says so, if a step fails. Sentences that type text ("type first this then that") are never split |
+| `open the project and then chat` | Several commands in one sentence (`and then`, `then`, `after that`, or a plain `and` when both halves are commands: `open a new tab and search for hello`; `click salt and pepper` stays one command). Waits for the page to settle between steps; if a step loads another page the rest carries on there. The second step prefers the button that **appeared** after the first. Stops, and says so, if a step fails. Sentences that type text ("type first this then that") are never split |
 | `speed 1.5` / `double speed` / `normal speed` / `make the video faster` / `faster` | Playback speed (a bare `faster` means the video when one is playing and nothing is scrolling) |
 | `skip 10 seconds` / `rewind 30 seconds` / `go to 2 minutes` / `restart` | Seek |
 | `like` / `dislike` / `subscribe` / `skip ad` / `next video` / `captions on` / `theater mode` | YouTube-style controls; the like button of the **video**, not a comment's. `subscribe` asks for a spoken yes. A like that needs a sign-in says so instead of claiming success |
@@ -143,7 +161,7 @@ with filters by site, counts, and download as JSON or CSV. It is stored only on 
 dictate is not kept, only that you did. A command counts as *failed* when it says it couldn't, as *needed help* when it had to ask
 which one you meant; a warning that arrives a second later ("the page didn't change it") also marks it failed.
 
-Honest limits: a new site asks for microphone permission once (Chrome keeps it per site). ChatGPT and Gmail need a login, so they are
+Honest limits: ChatGPT and Gmail need a login, so they are
 tested on mock pages built from what I know of their layout, not on the real sites: the icon-only buttons, upside-down scroll, sidebar,
 and mail rows there are a best effort and the log is how a miss on the real site will show up.
 
@@ -286,6 +304,9 @@ Other checks (2026-10-05, after the v0.3 work): 788 unit tests (parser, Hindi, h
 packs, regressions from hands-on use); 52 backend tests; 33 detector checks; and browser tests loading the real extension into
 Chromium: 157 (`e2e.mjs`), 41 (`e2e-chat.mjs`), 83 (`e2e-forms.mjs`), 66 (`e2e-browse.mjs`), 17 (`e2e-trusted.mjs`: the real-click
 fallback, key presses, the tour) and 4 (`e2e-whisper.mjs`: a spoken phrase through a fake microphone and Whisper to a scroll).
+
+Latest run (2026-10-31, 0.4.0): 807 unit tests; browser tests 157 (`e2e.mjs`), 25 (`e2e-mic.mjs`: the one-time microphone setup), 83, 41, 67,
+17, 7 (`e2e-reload.mjs`) and 5 (`e2e-whisper.mjs`); all passing.
 `live-forms.mjs` was 27/27 on two public test forms on 2026-10-05 (before v0.3, not re-run).
 
 **Top Indian sites** (`node tests/live-india.mjs`, see `eval/live-india-results.md`): 14 sites, **72 of 74 checks**. Per site: scroll
@@ -300,7 +321,8 @@ made YouTube, Amazon and IMDb render blank: that was the test, not VoiceNav, and
 
 ```
 npm test                                              # 788 unit tests: parser, Hindi, forms, browse, site packs, regressions
-npm run test:browser                                  # e2e + forms + chat + browse + trusted (real extension in Chromium)
+npm run test:browser                                  # e2e + mic + forms + chat + browse + trusted + reload (real extension in Chromium)
+npm run test:mic                                      # the one-time microphone setup: no site is asked, speech goes to the tab in front
 npm run test:whisper                                  # spoken phrase -> fake microphone -> Whisper -> page scrolls (needs requirements-whisper.txt)
 npm run test:backend                                  # backend: resolver, interpreter, API, offline speech endpoint
 node tests/e2e-chat.mjs                               # chat mocks (no backend needed); BACKEND_PORT=... adds search-engine checks
@@ -441,8 +463,11 @@ one of those (that case is not measured).
 - No vision model for icon-only buttons with no name at all (it needs a large model and screenshots); they are found by their hidden
   names and synonyms, as before.
 - Price extraction reads text near each link, so "cheapest" works on sites that show prices there and may not on others.
-- Voice itself isn't covered by automated tests (no microphone in a test browser), so auto-resume after reload and
-  pausing in hidden tabs were checked by reading the code, not by running them.
+- What Chrome's speech service makes of real speech is not covered by automated tests (a test browser has a fake microphone and
+  no speech service). `e2e-mic.mjs` covers everything around it: the permission, the setup page, routing to the tab in front,
+  pausing while VoiceNav speaks, and letting go of the microphone when no tab can be seen (the tabs' reports are simulated). A real click on Chrome's own Allow button can't be automated: the test writes that grant into
+  a test profile instead, so that click is checked by hand. English speech through Chrome's recogniser has been tried by hand with a
+  real voice, by the author and by an outside tester; Hindi has not (see below).
 - A first real-world test on Amazon found two bugs (transparent "Add to Cart" buttons were skipped, and spoken
   numbers like "four" were heard as "for"); both are fixed and covered by tests. Expect more on other sites.
 - Layouts, iframes and closed shadow roots will cause misses.

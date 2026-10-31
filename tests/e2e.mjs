@@ -46,7 +46,8 @@ const backendUp = await fetch(`http://127.0.0.1:${port}/health`).then((r) => r.j
 // Branded Chrome 137+ ignores --load-extension, so use Playwright's bundled Chromium (npx playwright-core install chromium).
 const ctx = await chromium.launchPersistentContext(fs.mkdtempSync(path.join(os.tmpdir(), "voicenav-prof-")), {
   headless: false, // extensions need a headed browser (or --headless=new); a window will flash up
-  args: [`--disable-extensions-except=${extDir}`, `--load-extension=${extDir}`],
+  // The fake-ui flag answers the microphone question for the extension's own page; the real flow is covered by e2e-mic.mjs
+  args: [`--disable-extensions-except=${extDir}`, `--load-extension=${extDir}`, "--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
 });
 
 try {
@@ -506,20 +507,20 @@ try {
     check("a likely mis-hearing ('Hindi may bolo') still switches", (await hostData("lang")) === "hi-IN", await hostData("lang"));
     await shadow("root.getElementById(\"lang\").click();");
     check("the language chip switches it back", (await hostData("lang")) === "en-IN", await hostData("lang"));
-    // The recognizer restarts with the new language when it is running. This browser has no microphone, so it may refuse
-    // to start at all; then only the setting is checked (above).
+    // The recognizer restarts with the new language when it is running. It lives in the extension's microphone page, which reports
+    // back a moment later; this browser may have no speech service, so only the setting is checked if it never starts.
     await shadow("root.getElementById(\"mic\").click();");
-    await page.waitForTimeout(800);
+    const waitData = (key, val, ms) => page.waitForFunction(([k, v]) => document.querySelector("#voicenav-host").dataset[k] === v, [key, val], { timeout: ms }).then(() => true, () => false);
     const micOn = await shadow("return root.getElementById(\"mic\").classList.contains(\"on\");");
-    if (micOn && (await hostData("recLang")) === "en-IN") {
+    if (micOn && (await waitData("recLang", "en-IN", 6000))) {
       const starts = +(await hostData("recStarts"));
       await say("speak hindi");
-      await page.waitForTimeout(800);
-      check("switching restarts the recognizer with hi-IN", (await hostData("recLang")) === "hi-IN" && +(await hostData("recStarts")) > starts, `${await hostData("recLang")} starts ${starts} -> ${await hostData("recStarts")}`);
+      const restarted = await waitData("recLang", "hi-IN", 6000);
+      check("switching restarts the recognizer with hi-IN", restarted && +(await hostData("recStarts")) > starts, `${await hostData("recLang")} starts ${starts} -> ${await hostData("recStarts")}`);
       await say("speak english");
       await shadow("root.getElementById(\"mic\").click();");
     } else {
-      console.log(`SKIP  recognizer restart (mic did not stay on in this browser: on=${micOn}, lang=${await hostData("recLang")})`);
+      console.log(`SKIP  recognizer restart (mic did not stay on in this browser: on=${micOn}, lang=${await hostData("recLang")}, host=${await hostData("hostState")})`);
       if (micOn) await shadow("root.getElementById(\"mic\").click();");
     }
     await sw.evaluate(() => chrome.storage.local.set({ lang: "en-IN" }));

@@ -81,6 +81,16 @@ test("text that contains 'then' is never split", () => {
   assert.equal(splitChain("then scroll"), null);
   assert.equal(splitChain("so then what"), null); // the first part is not a command
 });
+test("a plain 'and' joins two whole commands", () => {
+  assert.deepEqual(splitChain("open a new tab and search for hello"), ["open a new tab", "search for hello"]);
+  assert.deepEqual(splitChain("can you please open a new tab and search for hello"), ["can you please open a new tab", "search for hello"]);
+  assert.deepEqual(splitChain("scroll down and click the first result"), ["scroll down", "click the first result"]);
+  assert.deepEqual(splitChain("go back and scroll down and click the first result"), ["go back", "scroll down", "click the first result"]);
+});
+test("an 'and' inside a name or a text command is never a separator", () => {
+  for (const s of ["click salt and pepper", "open black and white", "play tom and jerry", "search for cats and dogs", "type hello and search for me",
+    "fill name with Asha and Rao", "click terms and conditions", "scroll down and up", "open mom and dad", "go to youtube and gmail"]) assert.equal(splitChain(s), null, s);
+});
 test("after a text command, the rest stays together", () => {
   assert.deepEqual(splitChain("go to the top then type hello then world"), ["go to the top", "type hello then world"]);
 });

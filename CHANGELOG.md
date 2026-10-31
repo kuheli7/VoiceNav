@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.4.0 (2026-10-31): the microphone is asked once for the whole extension, not once per website
+
+| Problem | Cause | Fix | Check |
+|---|---|---|---|
+| Every new website asked "Allow the microphone?", which someone who can't use a mouse can't answer | listening ran inside each page, and Chrome asks per website | a hidden extension page (`offscreen.html` / `offscreen.js`, new `offscreen` permission) does the listening; the extension's own address is asked once on `setup.html`, which opens by itself the first time. Speech goes to the tab in front only; the microphone pauses while VoiceNav speaks; where there are no offscreen pages the tabs listen for themselves as before | `tests/e2e-mic.mjs` (25), no `--use-fake-ui-for-media-stream` so a prompt would show as a stall |
+| (found by that test) the pill kept saying "Listening..." when the microphone was not allowed | the worker opened the setup tab before telling the tab in front, so the message went to the setup page | tell the tab first, then open setup | e2e-mic |
+| (found by review) the shared microphone would have stayed open with Chrome minimised or covered, which the old per-tab code never did | the offscreen page has no visibility of its own | tabs report whether they can be seen; the microphone is open only while voice is on and a tab can be seen. The stop waits a second so a tab switch doesn't restart it; reports carry a time so a page being left can't overrule the page that replaced it | e2e-mic |
+| "can you please open a new tab and search for hello" failed (user report) | only "then" / "and then" / "after that" separated commands, so the whole sentence was taken as one click on text "a new tab and search for hello" | a plain "and" also separates when the first part is a whole command (not typing or searching, which take free text) and the rest is a command or starts with a command word; "click salt and pepper", "open black and white", "search for cats and dogs" stay whole | unit (+2), `e2e-browse` (+1: the second half runs on the page the first half opened); live spike: new tab, then the search for "hello" was submitted (Google then showed its bot check, which is not worked around) |
+| (found by review) Whisper in the shared page might have captured silence | the page never gets a click, and a suspended `AudioContext` gives the analyser zeros | the page reports the context's state; `e2e-whisper` checks it is `running` | e2e-whisper |
+
+Also: after the one-time permission the pill says "Listening..." again; the "last window" memory survives the worker being stopped; manifest has a
+`key` only in the test copies (the shipped manifest is unchanged apart from version 0.4.0 and the `offscreen` permission).
+
+Checks: unit 807, `e2e.mjs` 157, `e2e-mic.mjs` 25, forms 83, chat 41, browse 67, trusted 17, reload 7, `e2e-whisper.mjs` 5, all passing.
+
+**Not verified (needs a real microphone and browser):** a real click on Chrome's Allow persisting for the extension's address (the tests
+write the grant into a test profile); what "Allow this time" does once the setup tab closes; Chrome's speech service transcribing real
+speech from the extension page (a fake microphone gives no transcript); a real minimised window (a Playwright browser never reports a tab
+as hidden, so the tests make the tabs' reports by hand); Edge. Google Docs voice typing now switches voice off for every tab while the shared
+microphone is in use. Someone with no hands still needs a helper for the very first "voice on" and the one-time Allow.
+
+## 0.3.1 (2026-10-24): fixes from the first outside tester
+
+| Feedback | Cause | Fix | Check |
+|---|---|---|---|
+| "Why do I have to refresh the page every time?" | browsers add content scripts only to pages loaded after the install or reload, so every open tab needed a refresh | the service worker injects the scripts into all open http(s) tabs on install/update/reload (`scripting` permission); a copy left from before a reload hands over to the new one, so there is never a second pill or microphone | `tests/e2e-reload.mjs` (7) |
+| "scroll a little up" is not "scroll up a little" | only one word order was parsed | both orders for little/bit/slightly/a lot | unit |
+| The voice icon moves only if the sentence starts with "move" | verb was required | verb optional ("voice icon to the top left", "mic bottom right"), bare "top right" works | unit |
+| One wrong letter breaks a command | exact patterns only | misspelled command words (one edit, two for long words) are repaired, only for harmless commands (scroll, tabs, media, pill, back/forward...), never for click/search/type | `tests/tolerance.test.js` (17) |
+
+Manifest version 0.3.1 now matches; unit tests 805. Not changed: speed (still to be measured).
+
 ## 0.3.0 (2026-10-05/06): fixes from hands-on use, real clicks, offline speech, a guided tour
 
 Starting point (0.2): 758 unit tests, 47 backend tests, 157+41+83+66 browser checks, all passing, yet hands-on use on YouTube and Google

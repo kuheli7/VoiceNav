@@ -10,3 +10,9 @@ tests/.profile-docs/
 Screenshots_Test/
 .env
 *.env
+
+# built zip for sharing (rebuilt on demand, goes stale)
+*.zip
+
+# private notes, kept off the public repo
+KNOWN-FLAWS.md
