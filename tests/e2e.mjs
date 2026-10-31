@@ -140,6 +140,8 @@ try {
   await say("go to sleep");
   await say("scroll down");
   check("asleep: commands are ignored", (await page.evaluate(() => scrollY)) === 0 && /sleeping/i.test(await page.evaluate(() => document.querySelector("#voicenav-host").shadowRoot.getElementById("heard").textContent)));
+  const sleepLines = await page.evaluate(() => { const sr = document.querySelector("#voicenav-host").shadowRoot, shown = (id) => getComputedStyle(sr.getElementById(id)).display !== "none"; return { reply: shown("status"), heard: shown("heard") }; });
+  check("caption: a command that was ignored shows only what was heard, not an old reply", sleepLines.heard && !sleepLines.reply, JSON.stringify(sleepLines));
   await say("wake up");
   await say("scroll down");
   check("wake up: commands work again", (await page.evaluate(() => scrollY)) > 100);
@@ -190,6 +192,54 @@ try {
   await say("scroll down a bit");
   check("pill grows back when it has something to say", !(await pillState()).compact);
   await say("go to the top");
+
+  // what VoiceNav says shows in a translucent caption next to the pill, one plain style: on screen, above the pill at the bottom
+  // and below it at the top, whole text kept in the page, clicks pass through; with both lines showing, only the last words of
+  // "Heard" show. (This helper writes both lines itself, to test the layout; the checks after it test WHEN the heard line shows.)
+  const caption = (v, h, longText) => page.evaluate(([v, h, longText]) => {
+    const sr = document.querySelector("#voicenav-host").shadowRoot, p = sr.querySelector(".panel"), t = sr.querySelector(".text"), hd = sr.getElementById("heard");
+    p.dataset.v = v; p.dataset.h = h; p.classList.remove("compact"); t.classList.remove("no-heard", "no-status");
+    sr.getElementById("status").textContent = longText ? "Stopped: " + "a long reply that goes on and on ".repeat(20) : "Scrolled down";
+    hd.textContent = longText ? "Heard: " + "an even longer sentence that was said ".repeat(20) : 'Heard: "scroll down"';
+    const c = t.getBoundingClientRect(), b = p.getBoundingClientRect();
+    return new Promise((r) => setTimeout(() => r({
+      above: c.bottom <= b.top, below: c.top >= b.bottom, left: c.left, right: c.right, top: c.top, bottom: c.bottom, vw: innerWidth, vh: innerHeight,
+      pe: getComputedStyle(t).pointerEvents, full: hd.textContent.length, cut: hd.classList.contains("cut"), alpha: getComputedStyle(t).backgroundColor,
+      clipped: Math.round(hd.getBoundingClientRect().height),
+      look: [sr.getElementById("status"), hd].map((e) => { const c = getComputedStyle(e); return c.fontWeight + "/" + c.fontSize + "/" + c.opacity; }),
+    }), 150));
+  }, [v, h, longText]);
+  for (const [v, h] of [["bottom", "right"], ["top", "left"], ["bottom", "left"], ["top", "right"]]) {
+    const cp = await caption(v, h, true);
+    const placed = v === "bottom" ? cp.above : cp.below;
+    check(`caption at ${v}-${h}: a long reply and heard line sit ${v === "bottom" ? "above" : "below"} the pill, on screen`,
+      placed && cp.left >= 0 && cp.top >= 0 && cp.right <= cp.vw && cp.bottom <= cp.vh, JSON.stringify(cp));
+  }
+  const longCap = await caption("bottom", "right", true), shortCap = await caption("bottom", "right", false);
+  const alpha = +(longCap.alpha.match(/,\s*([\d.]+)\)$/)?.[1] ?? 1);
+  check("caption: clicks go through it, it is see-through (55%, not 82%), and the heard line keeps all its text but shows only the last lines",
+    longCap.pe === "none" && alpha > 0.3 && alpha <= 0.6 && longCap.full > 600 && longCap.cut && longCap.clipped < 60, JSON.stringify(longCap));
+  check("caption: one style, the reply and the heard line are the same weight, size and strength (no bold, no small print)",
+    longCap.look[0] === longCap.look[1] && /^400\/14px\/1$/.test(longCap.look[0]), JSON.stringify(longCap.look));
+  check("caption: a short line is shown whole, with no fade", !shortCap.cut && shortCap.full < 40, JSON.stringify(shortCap));
+  await say("move panel to the bottom right");
+  await say("go to the top");
+
+  // which lines show: the reply alone when the command worked; the reply and what was heard when it failed
+  const lines = () => page.evaluate(() => {
+    const sr = document.querySelector("#voicenav-host").shadowRoot, shown = (id) => getComputedStyle(sr.getElementById(id)).display !== "none";
+    return { reply: shown("status"), heard: shown("heard"), status: sr.getElementById("status").textContent, said: sr.getElementById("heard").textContent };
+  });
+  await say("hide numbers");
+  await say("show numbers");
+  const okLines = await lines();
+  check("caption: a command that worked shows VoiceNav's reply alone (what you said is still kept in the page)",
+    okLines.reply && !okLines.heard && okLines.status.length > 0 && /^Heard: /.test(okLines.said), JSON.stringify(okLines));
+  await say("click number ninety nine");
+  const badLines = await lines();
+  check("caption: a command that failed shows the reply and what was heard, so you can see why",
+    badLines.reply && badLines.heard && /^No item/.test(badLines.status) && /ninety nine/.test(badLines.said), JSON.stringify(badLines));
+  await say("hide numbers");
 
   // a link that opens in a new tab (Amazon products do) must not leave the mic off in the new tab
   // (The shipped content script asks the background worker "is voice on?" on every page load; we watch those questions
@@ -436,6 +486,8 @@ try {
 
     await say("नीचे स्क्रॉल करो");
     check("hindi: 'नीचे स्क्रॉल करो' scrolls down", (await sy()) > 100, `y=${await sy()}`);
+    check("caption: a Hindi command shows what was heard and the English it became, so the translation is visible",
+      await page.evaluate(() => { const h = document.querySelector("#voicenav-host").shadowRoot.getElementById("heard"); return getComputedStyle(h).display !== "none" && h.textContent.includes("→"); }), await heard());
     await say("sabse upar jao");
     check("hindi: 'sabse upar jao' goes to the top", (await sy()) === 0, `y=${await sy()}`);
     await say("सबसे नीचे जाओ");

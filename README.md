@@ -84,6 +84,7 @@ microphone. If the browser has no offscreen pages, each tab listens for itself a
 | `scroll down slowly` / `scroll up fast` / `keep scrolling` | Scroll continuously until you say `stop` (`faster` / `slower` adjust it). Works on pages that scroll inside a panel too. If your browser splits it into "scroll down" and "slowly", the "slowly" continues the scroll. Touching the mouse or keyboard also stops it |
 | `close` / `close this popup` / `press escape` | Close the open popup or dialog |
 | `move panel to the top left`, `hide panel`, `show panel` | Move or hide the control pill when it covers something |
+| *(what VoiceNav says)* | Shown in a translucent caption beside the pill, in one plain style, the same on light and dark pages. It shows the reply alone when a command worked; what you said appears with it only when the command failed or was translated from Hindi, and alone when it was ignored. A long reply keeps its first 3 lines; a long "Heard" line shows the last 2 lines of what you said. Screen readers get the whole text; the voice log (`show log`) keeps the first 140 characters of what you said and 120 of the reply |
 | `go back` / `forward` / `refresh the page` | Navigation |
 | `show numbers` then `click 14` | Number overlay on every clickable element. Anything hidden behind an open popup is skipped |
 | `sort by price low to high` | Pick that option in a page's sort dropdown (also works when the page hides the real dropdown). `sort by` alone lists the options; the next thing you say picks one |
@@ -305,7 +306,7 @@ packs, regressions from hands-on use); 52 backend tests; 33 detector checks; and
 Chromium: 157 (`e2e.mjs`), 41 (`e2e-chat.mjs`), 83 (`e2e-forms.mjs`), 66 (`e2e-browse.mjs`), 17 (`e2e-trusted.mjs`: the real-click
 fallback, key presses, the tour) and 4 (`e2e-whisper.mjs`: a spoken phrase through a fake microphone and Whisper to a scroll).
 
-Latest run (2026-10-31, 0.4.0): 807 unit tests; browser tests 157 (`e2e.mjs`), 25 (`e2e-mic.mjs`: the one-time microphone setup), 83, 41, 67,
+Latest run (2026-10-31, 0.4.0): 807 unit tests; browser tests 124 (`e2e.mjs`, AI backend off; the AI cases add to it when the backend is up), 25 (`e2e-mic.mjs`: the one-time microphone setup), 83, 41, 67,
 17, 7 (`e2e-reload.mjs`) and 5 (`e2e-whisper.mjs`); all passing.
 `live-forms.mjs` was 27/27 on two public test forms on 2026-10-05 (before v0.3, not re-run).
 

@@ -44,9 +44,27 @@
       button:focus-visible{outline:3px solid #ffd400;}
       button.on{background:#d6293e;animation:pulse 1.4s infinite;}
       @keyframes pulse{50%{box-shadow:0 0 0 8px #d6293e44}}
-      .text{display:flex;flex-direction:column;min-width:0}
-      .status{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .heard{opacity:.7;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      /* What VoiceNav says: a translucent caption beside the pill, above it when the pill is at the bottom and below it when at
+         the top. One style, one size. The reply shows alone; what you said joins it only when that helps (see captionMode). The
+         reply keeps its beginning (the verdict comes first) and is cut after --status-lines; the heard line keeps its END (what you
+         said last) and loses old words from the top after --heard-lines. The elements still hold the whole text: this is only how
+         much of it shows. Clicks go through it to the page. It is black at 55% with white text, on light and dark pages alike
+         (worst case, a pure white page: 4.7 to 1), so the page's colour scheme does not change it; the thin light border and the
+         text shadow keep its edge and letters clear over dark and busy pages. */
+      .text{--status-lines:3;--heard-lines:2;position:absolute;display:flex;flex-direction:column;gap:2px;box-sizing:border-box;
+        width:max-content;max-width:min(420px,calc(100vw - 48px));padding:8px 12px;border-radius:14px;overflow-wrap:anywhere;
+        background:rgba(0,0,0,.55);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 16px #0004;
+        text-shadow:0 1px 2px rgba(0,0,0,.6);line-height:1.45;pointer-events:none;animation:capin .15s ease-out}
+      .panel[data-v=bottom] .text{bottom:calc(100% + 8px)} .panel[data-v=top] .text{top:calc(100% + 8px)}
+      .panel[data-h=right] .text{right:0} .panel[data-h=left] .text{left:0}
+      @keyframes capin{from{opacity:0}}
+      .status{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--status-lines);overflow:hidden}
+      .heard{display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;max-height:calc(var(--heard-lines) * 1.45em)}
+      .heard:empty,.text.no-heard .heard,.text.no-status .status{display:none}
+      .heard.cut{-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.5),#000 1.1em);mask-image:linear-gradient(to bottom,rgba(0,0,0,.5),#000 1.1em)}
+      @media (prefers-reduced-transparency:reduce){.text{background:#111;backdrop-filter:none}}
+      @media (prefers-contrast:more){.text{background:#000;border-color:#fff}}
+      @media (prefers-reduced-motion:reduce){.text{animation:none}}
       button.asleep{background:#8a6d00;animation:none}
       button.chip{width:auto;height:auto;border-radius:999px;padding:3px 8px;font-size:11px;background:#444;animation:none}
       button.chip.on{background:#1d4ed8}
@@ -88,13 +106,35 @@
   const panel = root.querySelector(".panel");
   let compactTimer;
   let dictating = null; // set while dictation is on (see "forms and dictation"): the pill stays open so it is obvious
-  const showFull = () => { panel.classList.remove("compact"); clearTimeout(compactTimer); };
+  // A long "Heard" line shows only its last lines; this marks it so its top edge fades. Measured after the text changes, and when
+  // the caption comes back (it has no size while hidden).
+  // (scrollHeight can't be used: the old words overflow at the top, which a scroll size does not count.)
+  const markCut = () => requestAnimationFrame(() => {
+    const r = document.createRange(); r.selectNodeContents(heardEl);
+    heardEl.classList.toggle("cut", r.getBoundingClientRect().height > heardEl.clientHeight + 1);
+  });
+  new MutationObserver(markCut).observe(heardEl, { childList: true, characterData: true, subtree: true });
+  const showFull = () => { if (panel.classList.contains("compact")) markCut(); panel.classList.remove("compact"); clearTimeout(compactTimer); };
   const wake = () => { showFull(); compactTimer = setTimeout(() => { if (!dictating) panel.classList.add("compact"); }, 5000); };
   panel.addEventListener("pointerenter", showFull);
   panel.addEventListener("pointerleave", wake);
   panel.addEventListener("focusin", showFull);
   panel.addEventListener("focusout", wake);
-  const say = (msg) => { statusEl.textContent = msg; wake(); noteSay(msg); if (talkBack && typeof speak === "function" && !dictating && !/^(?:Listening|Heard)/.test(msg)) speak(msg); };
+  // What the caption shows. VoiceNav's reply is the main text. What you said is added only when it helps: the command failed (so you
+  // can see what was heard), it was translated from Hindi, or the command got no reply (ignored, or like "scroll down" it says
+  // nothing), in which case it shows alone rather than beside an old reply. Both elements keep their whole text either way.
+  const FAIL_MSG = /^(?:no |not |nothing |couldn|can'?t|cannot|didn'?t|doesn'?t|unable|more than|the ai |ai backend|extension was|that doesn|i couldn|i can'?t|click a text box|dictation stopped|the box has changed|the page |clicking "|pressed [a-z ]+, but|stopped:|browser blocked|too long|there is no |there's no |tab \d+ is a browser|clicked "[^"]*", but|the browser wouldn|already as (?:fast|slow))/i;
+  const OK_MSG = /^(?:nothing has failed|no [a-z ]+ tab was open, so|nothing is selected|everything is already)/i; // said with "no"/"nothing", but fine
+  const textEl = root.querySelector(".text");
+  let replied = true; // false from the moment a command is heard until VoiceNav says something about it
+  const captionMode = () => {
+    const help = !replied || (FAIL_MSG.test(statusEl.textContent) && !OK_MSG.test(statusEl.textContent)) || heardEl.textContent.includes("→");
+    textEl.classList.toggle("no-status", !replied);
+    textEl.classList.toggle("no-heard", !help);
+    markCut();
+  };
+  const hear = (text) => { heardEl.textContent = text; replied = false; captionMode(); };
+  const say = (msg) => { statusEl.textContent = msg; replied = true; captionMode(); wake(); noteSay(msg); if (talkBack && typeof speak === "function" && !dictating && !/^(?:Listening|Heard)/.test(msg)) speak(msg); };
   wake();
 
   // Where the pill sits. Remembered across pages; changed by voice ("move panel to the top left").
@@ -1486,15 +1526,13 @@
   // extension's Options). Kept on this computer only. What you typed or dictated is not stored, only that you did.
   let cmdCtx = null;      // the command being handled: its messages, what it parsed to, how it was understood
   let lastLogged = null;  // the newest log entry, so a warning that arrives a moment later can still mark it as failed
-  const FAIL_MSG = /^(?:no |not |nothing |couldn|can'?t|cannot|didn'?t|doesn'?t|unable|more than|the ai |ai backend|extension was|that doesn|i couldn|i can'?t|click a text box|dictation stopped|the box has changed|the page |clicking "|pressed [a-z ]+, but|stopped:|browser blocked|too long|there is no |there's no |tab \d+ is a browser|clicked "[^"]*", but|the browser wouldn|already as (?:fast|slow))/i;
-  const OK_MSG = /^(?:nothing has failed|no [a-z ]+ tab was open, so|nothing is selected|everything is already)/i; // said with "no"/"nothing", but fine
   const NEEDS_HELP = /matches\. say|say "click" and a number|which one|be more specific|say the one you want|number of the one/i;
   const REDACT = new Set(["type", "send", "fill", "fillOrType", "typeEmail", "typeNumber", "typeDate", "search", "searchText"]);
   const IGNORED_MSG = /^(?:thinking\.\.\.|listening\.\.\.)$/i;
 
   // A warning that comes a moment AFTER a command (a tick that didn't register): it must not land in whatever command is running now
   function sayLate(msg) {
-    statusEl.textContent = msg; wake();
+    statusEl.textContent = msg; replied = true; captionMode(); wake();
     if (lastLogged && lastLogged.entry.ok && FAIL_MSG.test(msg)) {
       lastLogged.entry.ok = false; lastLogged.entry.why = "failed"; lastLogged.entry.msg = msg.slice(0, 120);
       try { chrome.runtime.sendMessage({ type: "logUpdate", id: lastLogged.entry.id, patch: { ok: false, why: "failed", msg: lastLogged.entry.msg } }); } catch { /* reloaded */ }
@@ -2344,19 +2382,19 @@
   async function handle(raw) {
     if (asleep) {
       const cmd = VoiceNavParser.parse(VoiceNavParser.toEnglish(VoiceNavParser.stripWake(raw) ?? raw));
-      if (cmd?.type === "wakeUp") { heardEl.textContent = `Heard: "${raw}"`; return setAsleep(false); }
-      heardEl.textContent = `Sleeping, ignored: "${raw}"`;
+      if (cmd?.type === "wakeUp") { hear(`Heard: "${raw}"`); return setAsleep(false); }
+      hear(`Sleeping, ignored: "${raw}"`);
       return;
     }
     if (attention) {
       const rest = VoiceNavParser.stripWake(raw);
-      if (rest === null) { heardEl.textContent = `Ignored (no wake word): "${raw}"`; return; }
-      if (!rest) { heardEl.textContent = 'Heard "Nova"'; return say("Yes?"); }
+      if (rest === null) { hear(`Ignored (no wake word): "${raw}"`); return; }
+      if (!rest) { hear('Heard "Nova"'); return say("Yes?"); }
       raw = rest;
     }
     // "open the project and then chat": several commands in one sentence
     const parts = !dictating && !awaitingFresh() ? VoiceNavParser.splitChain(VoiceNavParser.toEnglish(raw)) : null;
-    if (parts) { heardEl.textContent = `Heard: "${raw}"`; wake(); return runChain(parts); }
+    if (parts) { hear(`Heard: "${raw}"`); wake(); return runChain(parts); }
     return runOne(raw);
   }
 
@@ -2373,12 +2411,12 @@
   }
 
   async function handleCore(raw, ctx) {
-    heardEl.textContent = `Heard: "${raw}"`;
+    hear(`Heard: "${raw}"`);
     wake(); // show what was heard even for commands (like scrolling) that print no status of their own
     // Hindi and Hinglish ("doosra result kholo", "नीचे स्क्रॉल करो") become the English command; English passes through as is
     const en = VoiceNavParser.toEnglish(raw);
     ctx.en = en;
-    if (en !== raw) heardEl.textContent += ` → "${en}"`;
+    if (en !== raw) { heardEl.textContent += ` → "${en}"`; captionMode(); }
     let cmd = VoiceNavParser.parse(en);
     if (!cmd && ctx.chained) cmd = { type: "clickText", text: norm(en) }; // "...and then chat": the second step is a name to click
     // With numbers on screen, just saying the number ("five", "14") clicks it
@@ -2388,7 +2426,7 @@
     if ((dictating && ((dictating.el && secret(dictating.el)) || (act && secret(act)))) ||
         (act && secret(act) && cmd && ["type", "fillOrType", "typeNumber", "typeEmail"].includes(cmd.type)) ||
         (cmd && (cmd.type === "fill" || cmd.type === "fillOrType") && /passw|passcode/i.test(cmd.field))) {
-      heardEl.textContent = "Heard: (hidden, it is for a password)";
+      hear("Heard: (hidden, it is for a password)");
     }
     if (!cardEl.hidden && !(cmd && ["help", "readResults", "hideCard", "close", "lang"].includes(cmd.type))) hideCard();
     // Dictation: anything that isn't a control command is typed as it was said (not translated, not interpreted)

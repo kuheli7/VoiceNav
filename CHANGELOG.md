@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased: the text beside the pill is a caption
+
+| Problem | Cause | Fix | Check |
+|---|---|---|---|
+| A long reply or a long "Heard" line was cut to one line with "..." inside the small pill (user report) | the status and heard lines were single-line (`nowrap` + ellipsis) inside a pill that is only 420 px wide | the text is a translucent rounded caption next to the pill (above it when the pill is at the bottom, below it at the top), one plain style: same size, normal weight. It is black at 55% (it was 82%) with white text, so it reads the same on light and dark pages (worst case, a pure white page, is 4.7 to 1); a thin light edge keeps it visible on dark pages. It shows VoiceNav's reply alone when a command worked; what you said is added only when it helps: the command failed, it was translated from Hindi, or it got no reply (ignored, asleep), when it shows alone. The reply wraps to 3 lines and keeps its beginning; the "Heard" line shows its last 2 lines, the old words fading out at the top. The elements still hold the whole text (tests, screen readers; the voice log keeps only 140 + 120 characters, as before); clicks pass through the caption; it follows the pill when moved, hidden or shrunk; reduced-transparency, high-contrast and reduced-motion settings are respected. The limits are two CSS variables, `--status-lines` and `--heard-lines` | `e2e.mjs` (+11: four corners, click-through, see-through, one style, whole text kept, short line unfaded, and when the heard line shows: worked, failed, ignored, Hindi); screenshots on white, dark and busy pages, at 1000 px and 360 px wide, English and Hindi |
+
 ## 0.4.0 (2026-10-31): the microphone is asked once for the whole extension, not once per website
 
 | Problem | Cause | Fix | Check |
@@ -13,7 +19,7 @@
 Also: after the one-time permission the pill says "Listening..." again; the "last window" memory survives the worker being stopped; manifest has a
 `key` only in the test copies (the shipped manifest is unchanged apart from version 0.4.0 and the `offscreen` permission).
 
-Checks: unit 807, `e2e.mjs` 157, `e2e-mic.mjs` 25, forms 83, chat 41, browse 67, trusted 17, reload 7, `e2e-whisper.mjs` 5, all passing.
+Checks: unit 807, `e2e.mjs` 113 with the AI backend off (157 with it on: its 44 AI cases are skipped otherwise; 0.4.0 as released, before the caption), `e2e-mic.mjs` 25, forms 83, chat 41, browse 67, trusted 17, reload 7, `e2e-whisper.mjs` 5, all passing.
 
 **Not verified (needs a real microphone and browser):** a real click on Chrome's Allow persisting for the extension's address (the tests
 write the grant into a test profile); what "Allow this time" does once the setup tab closes; Chrome's speech service transcribing real
